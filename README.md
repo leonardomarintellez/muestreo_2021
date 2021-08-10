@@ -16,7 +16,7 @@ El curso cubrirá los elemetos teóricos y prácticos de las diversas técnicas 
 	* Fuentes de Error
 	* Pasos para realizar una encuesta
 	* Propiedades deseables de un estimador
-	*Teorema Central del Límite
+	* Teorema Central del Límite
 
 2. Mestreo aleatorio simple (MAS)
 
