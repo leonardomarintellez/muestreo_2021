@@ -47,5 +47,8 @@ Sharon Lohr. Sampling Desing and analysis.
 R for Data science, Hadley Wickham. [página del libro](https://r4ds.had.co.nz/) 
 
 
+**Chat del grupo**
+
+[Gitter](https://gitter.im/fes_acatlan/muestreo_2021?utm_source=share-link&utm_medium=link&utm_campaign=share-link)
 
 
