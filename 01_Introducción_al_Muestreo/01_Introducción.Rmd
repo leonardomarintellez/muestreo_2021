@@ -1,0 +1,113 @@
+---
+title: "01 Introdución al Muestreo"
+author: "FES Acatlán"
+date: "agosto de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introducción 
+
+¿Dónde se usa el muestreo?
+
+- Encuestas de INEGI (Ingreso-Gasto, Población económicante activa, etc)
+- Estudios de Mercado
+- Control de calidad
+
+Ejemplos particulares son: nivel de escolaridad en una ciudad, nivel de desempleo, la opinión de un producto, elecciones de partidos políticos, etc.
+
+## Objetivo del muestreo
+
+Conocer las características generales de una población. 
+
+¿Qué debe cumplir una buena muestra?. 
+
+Deseamos que sea una muestra representativa, es decir, que la variable de interés presente una distribución semejante a la población.
+
+Lo anterior nos lleva apreguntarnos por un tamaño de muestra 'apropiado'. A veces erroneamente se cree que un tamaño de muestra del 10% de tu población es apropoado.
+
+**Ejercicio**. Pensar un ejemplo donde un tamaño menor al 10% sea representativo y otro ejemplo donde un 10% no sea suficiente.
+
+El tamaño de muestra depende de los siguientes factores:
+
+- La **variabilidad** de lo que queremos estudiar.
+- La **presición** con la que queremos hacer inferencia.
+- El **tamaño** de la población.
+- El **presupuesto** que tengamos.
+
+
+## Definición de Conceptos
+
+* ¿Qué es una población?
+
+Conjunto completo de observaciones que se desea estudiar. La población se define al especificar que elementos son y que características deben tener. Los elementos de la población pueden ser personas, viviendas, escuelas, etc. ejemplo, todas las escuelas primarias de la CDMX.
+
+* Marco de muestreo.
+
+Listado que contiene las unidades de muestreo. Ejemplo, una lista de telefonos de un call center. Muchas veces no es sencillo obtener el marco muestral.
+
+* ¿Qué es una muestra?
+
+Es un subconjunto de la población. Son elementos seleccionados del marco muestral.
+
+* UPM (unidad primaria de muestreo).
+
+Son las unidades que seleccionamos en una muestra. Ejemplo, nos interesa estudiar el ingreso de las personas en una colonia, pero por conveniencia seleccionamos hogares o viviendas de la colonia y ntrevistamos a las personas de esas viviendas seleccionadas.
+
+## Tipos de muestra
+
+  - No probabilistica
+  
+    - A juicio. Se usa el criterio experto del investigador.
+    - Por cuotas. Es realizada por un entrevistador y se les solicita a cada entrevistador cubrr una cuota de encuestas.
+    
+    
+    
+    
+  - Probabilística
+  
+    - Muestreo aleatorio simple
+    - Estratificado
+    - conglomerados
+
+Las muestras no probabilisticas suelen ser útiles en algunas situaciones para dar una idea general, no obstante, se puede incurrir en sesgos y no se puede evaluar la confiabilidad de los resultados.
+
+En el muestreo probabilísico se selecciona a los elementos de la población con probabilidades conocidas y mayores a cero.
+
+¿Por qué son tan populares las muestras probabilísticas? 
+
+Porque permiten calcular:
+
+
+- Estimadores insesgados
+- Errores estandar
+- Intervalos de confianza
+
+
+**Ejercicio**. Comenta ejemplos de malas prácticas que consideres podrían ocurrir en el levantamiento de encuestas.
+
+## Fuentes de error
+
+**Sesgo de selección**
+
+Ocurre cuando alguna parte de la población objetivo no está en en la población muestreada. Una muestra grande no asegura que se tenga sesgo pequeño.
+
+**Sesgo de medición**
+
+Este tipo de sesgo puede darse por:
+
+- Las personas no siempre dicen la verdad (ingresos / uso de drogas). pueden dar respuestas correctas sin intención como el parentezco con cierto familiar.
+- Los entrevistadores registran mal las respuestas. 
+- Se puede afectar la presición de las respuestas al dar un todo específco a una pregunta o la forma de redacción de la misma.
+- Diferencias culturaes. Una palabra puede siignificar cosas disyintas en ciertas regiones.
+
+
+Este tipo de errores puede ser controlado poniendo mayor dedicacción a la construcción del cuestionario y a la capacitación del trabajo de campo. 
+
+**Error muestral**
+
+Contrario a las fuentes anteriores, este error puede ser medido utilizando métodos estadísticos y por lo tanto hay opciones para disminuirlo o controlarlo con el diseño de la muestra.
+
