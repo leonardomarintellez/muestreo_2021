@@ -1,0 +1,234 @@
+---
+title: "0. Lo elemental"
+author: "FES Acatlán"
+date: "agosto de 2021"
+output: html_document
+---
+
+## Acerca de R
+
+### ¿Qué es R?
+
+* R es un lenguaje de programación y un ambiente de cómputo estadístico.
+* R es software libre (no dice qué puedes o no hacer con el software), de código abierto (todo el código de R se puede inspeccionar).
+
+
+### ¿Por qué R?
+
+* Es libre
+* R promueve la investigación reproducible.
+* R está actualizado gracias a que tiene una comunidad activa. Mucha de la funcionalidad adicional está en **paquetes** (conjunto de funciones y datos documentados) que la comunidad contribuye.
+* R se puede combinar con otras herramientas.
+* R tiene capacidades gráficas muy sofisticadas.
+
+
+### RStudio 
+
+Rstudio es un ambiente de desarrollo integrado para R: incluye una consola, un editor de texto y un conjunto de herramientas para administrar el espacio de trabajo cuando se utiliza R. GUI de R (Grafical User Interface).
+
+
+### Elementos de RStudio
+
+* Editor
+* Consola
+* Workspace
+
+
+
+Shorcuts (atajos) para ejecutar código, ya sea sobre la selección o en la línea actual
+
+* ctrl + r 
+* ctrl + enter (sólo funciona en RStudio)
+* El editor autocompleta el nombre de los objetos al presionar la tecla `tab`
+
+
+Comentarios
+
+Los comentarios se escriben después de un simbolo de gato #
+
+### RMardown
+
+Formato que permite una fácil creación de documentos, presentaciones dinámicas e informes de R. Su equivalente en *Python* es Jupyter Notebook.
+
+Ventajas de usar RMardown
+
+1. _Reproducibilidad_. Debe ser posible reproducir el análisis en todos sus pasos, en cualquier
+momento.
+2. _Claridad_. Los pasos del análisis deben estar documentados apropiadamente, de manera que
+los pasos y las decisiones importantes puedan ser entendidos y explicados claramente.
+
+
+Shorcuts para RMarkdown
+
+* ctrl + alt + i para `chunk`
+* ctrl + shift + m  para `pipeline` %>% 
+
+
+
+## Primeros pasos con R
+
+Directorio de Trabajo
+
+```{r results='hide'}
+# Obtener directorio (ruta)
+# "wd" se refiere a working directory 
+getwd()
+```
+
+
+
+Asignar el directorio de trabajo a una carpeta en especifico 
+
+```{r results='hide'}
+# Notar el sentido de las diagonales, no usar "backslashs"
+setwd("/home/leonardo/Documentos/")
+```
+
+
+R trabaja en la memoria RAM del equipo
+```{r results='hide'}
+# La versión de 32 bits de R sólo permite 4,095 Mb de RAM
+# La version de 64 bits de R permite 8Tb
+memory.limit() # Esta función sólo funciona en windows, 
+```
+
+
+
+
+
+Asignación de valores a elementos ( <- ). 
+Para asignar variables globales se usa: <<-
+
+```{r}
+# La asignación también se puede hacer con la función assing()
+
+a <- 5
+b <- 10
+```
+
+Se puede usar R como una calculadora
+
+```{r}
+a + b 
+```
+
+se puede realizar más de una asignación por línea si se usa punto y coma
+```{r}
+b <- 2; d <- 3
+b*d
+```
+
+
+
+si la asignación se pone entre parentesis, se imprime en la consola de forma directa
+
+```{r}
+(e <- 8)
+```
+
+R es `case sensitive`, es decir, 'f' es direfente de 'F'
+```{r}
+f <- 6
+F <-"Hola"
+
+print(f)
+print(F)
+```
+
+
+Identifica ciertos carácteres especiales reservados como pi (3.14...)
+```{r}
+pi
+Inf
+```
+
+
+
+
+Reglas de asignación de nombres a elementos
+
+
+```{r}
+# Nombre no válido, iniciar con número
+
+# 1a <- 5
+# _3 <- 4
+```
+
+```{r}
+1:100
+```
+
+
+
+R permite asignar nombres con punto 
+```{r}
+# Nombre sí válido, un punto para separar palabras
+
+nombre.objeto <- 10
+nombre.objeto
+```
+
+Notar que en los ejemplos anteriores, en la consola se imprime un [1] que antecede al resultado
+
+**Ayuda**
+
+Sección importante. No es necesario saber todos los detalles de una función, la ayuda nos permitirá conocer la sintaxis de uso.
+
+```{r}
+# help(read.table) 
+# forma equivalente: ?read.table
+
+# help.search("read.table") 
+```
+
+
+
+
+### Paquetes
+
+Esta es una de las grandes ventajes de R, la versión base puede ser ampliada con paquetes
+
+Distintas opciones de instalación
+
+a) código
+b) del menú herramientas (tools)
+c) un archivo zip
+d) un repositorio
+
+Para instalar un paquete se pone el nombre del paquete entre comillas (sólo se requiere instalar una vez). Es conveniente visitar el repositorio del paquete para ver la documentaci?n.
+
+
+```{r}
+#install.packages("nombre",dependencies = TRUE)
+```
+
+
+**Ejercicio**. Instalar el paquete tidyverse
+
+Para habilitar las funciones de un paquete, primero debemos cargar el paquete
+```{r }
+# No es necesario poner el paquete entre comillas
+# suppressMessages(library(tidyverse))
+library("tidyverse")
+```
+
+### Buenas prácticas
+
+* Comentar ampliamente sus códigos.
+* Al iniciar un proyecto limpiar el área de trabajo (borrar todos los elementos existentes).
+* Nunca hacer copy-paste de código. 
+
+> "¡No hay nada cómo la práctica!" -- Armando Becerril
+
+
+### Referencias
+
+* [An Introduction to R](https://cran.r-project.org/doc/manuals/r-release/R-intro.pdf)
+* [StackOverflow](http://stackoverflow.com)
+* [Datacamp](https://www.datacamp.com/)
+* R for Data Science ([R4DS](https://r4ds.had.co.nz/))
+
+
+
+

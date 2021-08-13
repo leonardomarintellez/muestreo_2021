@@ -1,0 +1,668 @@
+---
+title: "1. Datos en R"
+author: "FES Acatlán"
+date: "agosto de 2021"
+output: html_document
+---
+
+Limpiar área de trabajo
+```{r}
+rm(list=ls())
+```
+
+## Datos en R
+
+Existen distintas formas de guardar valores en un objeto en *R* dependiendo el prop?sito
+
+- Vectores
+- Matrices
+- Arrays
+- Data Frames  (tablas / datasets)
+- Listas
+- Series de tiempo (objeto especializado, fuera del alcance de este curso)
+
+
+Los valores en R pueden ser de 4 tipos
+
+- númericos (decimal y entero)
+- carácter 
+- lógico (Booleano)
+- factor (Es un tipo especial de carácter. Se puede considerar como una variable ordinal)
+
+
+
+
+### Vectores 
+
+Objetos unidimencionales de longitud finita. Los elementos de un vector sólo pueden ser de un tipo
+
+```{r}
+vector1 <- c(1,2,3,4,5,6,7,8,9)   # se utiliza la c para concatenar valores
+vector2 <- 9:1                    # los 2 puntos se usan para generar secuencias de numeros consecutivos
+```
+
+```{r}
+vector1
+vector2
+```
+
+
+```{r}
+vector3 <- seq(from=-3,to=6, by = 1)  
+# si se conoce la longitud deseada se puede usar el parámetro length.out 
+vector3a <- seq(from= -3, to= 6, length.out = 101)
+
+# repetir el valor 1 cinco veces
+# help(rep) 
+vector4 <- rep(1,5)                   
+```
+
+
+```{r}
+vector3
+vector3a
+vector4
+```
+
+
+Una ventaja de usar vectores con *R*, es la vectorización de elementos
+
+`Ejercicio`. ¿Qué resultados podríamos esperar al realizar las siguientes operaciones?
+
+a) sumar los vectores 1 y 2
+b) sumar los vectores 4 y 1
+
+
+```{r}
+vector1 + vector2
+vector4 + vector1     ## Al ser de distinta longitud, recicla los valores
+```
+
+Notar que la suma de vectores se hace elemento a elemento.
+
+
+Es útil conocer la longitud de los vectores
+```{r}
+length(vector1)
+length(vector4)
+```
+
+
+Se pueden unir varios vectores para formar uno nuevo
+```{r}
+vector5 <- c(vector3,vector4)
+vector5
+```
+
+
+Ejemplo de vector con valores tipo carácter
+```{r}
+vector6 <- c("H","M")
+vector6
+
+```
+
+`Ejercicio`. Intentar creear 1 vector con 2 tipos distintos de elementos.
+```{r}
+vector_mix <- c(1,"H")
+```
+
+
+```{r}
+# Recordemos los valores guardados en los primeros 2 vectores
+vector1
+vector2
+```
+
+
+La función módulo en R es con 2 signos de porcentaje (%).
+Combinar la función módulo con el número 2, es útil para saber si un número es par o impar
+
+```{r}
+vector1 %% 2
+```
+
+
+`Ejercicio`
+
+a) obtener la suma de todos los elementos del vector1
+b) obtener el minimo del vector2
+c) comparar el vector1 con el vector2 y obtener el m?nimo de entrada por entrada
+
+```{r}
+sum(vector1)
+min(vector2)
+
+pmin(vector1,vector2)       # útil cuando se quiere hacer algo como el minimo entre un valor y  un número fijo, digamos 12
+```
+
+Suma de un vector más un escalar. Multiplicación de un vector por un escalar.
+```{r}
+vector1 + 5
+2 * vector1
+```
+
+
+
+
+### Matrices 
+
+Objetos bidimencionales
+
+```{r}
+matriz1 <- matrix(vector1,nrow = 3, ncol = 3) #si sólo se asigna un par?metro de las dimensiones, el otro se ajusta en automático
+matriz1
+```
+
+```{r}
+matriz2 <- matrix(vector1,nrow = 3, ncol = 3, byrow = TRUE) #si se desea los valores de la matriz sean llenados de forma horizontal se usa un parámetro adicional 
+matriz2
+```
+
+
+
+Para conocer las dimensiones de la matriz se usa la función dim. El resultado es un vector de 2 elementos, el primero indica el número de filas y el segundo el número de columnas
+
+```{r}
+dim(matriz1)
+```
+
+Nota. Los vectores tienen una sola dimensión y en *R* se le llama longitud.
+
+Existen funciones creadas especialmente para matrices y vectores por el enfoque estadístico de *R*
+
+Crear una matriz diagonal
+```{r}
+matriz3 <- diag(c(2,2,2))
+matriz3
+```
+
+Multiplicar matrices. La multiplicación de matrices se realiza con el operador %*%
+
+```{r}
+# Nota. El número de columnas de la matriz izquierda debe ser igual al numero de filas de la matriz derecha
+matriz1 %*% matriz3
+```
+
+
+
+### Arrays
+
+Objetos n dimencionales
+
+```{r}
+arreglo1 <- array(c(matriz1,matriz2,matriz3),dim=c(3,3,3))
+arreglo1
+```
+
+```{r}
+dim(arreglo1)
+```
+
+
+
+### Data Frames (Marco de datos)
+
+Serán los principales objetos de interés. Son tablas de datos. Los data frames permiten tener columnas con distinto tipo de datos.
+
+
+Antes de crear nuestro primer data frame, veremos otra funcionalidad de *R*: crear valores aleatorios
+
+La función _rnorm_, genera valores aleatorios de una distribución normal, utiliza 3 parámetros:
+
+* n: número de valores a generar
+* mean: media (promedio) 
+* sd: desviación estándar
+
+
+```{r}
+set.seed(1234) 
+altura <- rnorm(n=30,mean=165,sd=10)
+altura
+```
+
+¿Por qué se fijó una semilla en el bloque de código anterior?. Respuesta: Fijar la semilla para que el proceso sea replicable.
+
+```{r}
+# Graficar de manera muy sencilla
+hist(altura)
+```
+
+
+**La siguiente función es fundamental para el muestreo**
+
+La función _runif_ genera valores aleatorios de una distribución uniforme. Utilza 3 parámetros:
+
+* n: número de valores a generar
+* min: valor mínimo
+* max: valor máximo
+
+```{r}
+#fijar la semilla para ue el proceso sea replicable
+set.seed(1234) 
+peso <- runif(n=30,min=50,max=85)
+peso
+```
+
+```{r}
+hist(peso)
+```
+
+
+Nota. Si se omite el segundo y tercer parámetro en las 2 funciones anteriores, se generan valores con los parámetros por default. Para la normal son mean = 0 y sd = 1; para la uniforme son min = 0 y max = 1.
+
+
+Recordar. Toda vez que se usen valores aleatorios o funciones que involucren valores aleatorios, establecer una semilla para que el proceso sea replicable.
+
+
+`Ejemplo`. Crear un data frame
+
+En general, los data frames los usamos al importar datos de otra fuente, pocas veces se crean desde cero.
+
+```{r}
+tabla1 <- data.frame(altura1=altura,peso1=peso) # por conveniencia repetimos los nombres, pero pueden ser arbitrarios
+tabla1
+```
+
+Estructura de la tabla
+```{r}
+dim(tabla1)
+names(tabla1)
+```
+
+```{r}
+str(tabla1)
+```
+
+
+
+`Ejercicio`. Generar un data frame sin especificar los nombres e imprimir en pantalla
+```{r}
+tabla2 <- data.frame(altura,peso)
+tabla2
+```
+
+
+
+### Listas
+Las _listas_ son objetos que son colección de objetos
+
+```{r}
+lista1 <-list(vector6,matriz3,tabla1)
+lista1
+```
+
+
+```{r}
+lista2 <-list(uno=vector6, dos=matriz3, tres=tabla1)
+lista2
+```
+
+```{r}
+names(lista1)
+names(lista2)
+```
+
+
+
+Notar los simbolos de pesos que anteceden a las palabras: uno, dos, tres; en la siguiente sección tomarán sentido
+
+
+Es importante saber el tipo de objeto para saber como utilizar un objeto, en nuestros ejemplos sabemos que tipo de objeto son,pero cuando se obtiene un objeto como resultado de funciones que programa alguien más, podemos saber el tipo de objeto con la función class
+
+```{r}
+class(lista1)
+class(tabla1)
+class(arreglo1)
+class(matriz1)
+class(vector1)
+```
+
+
+
+
+Dependiendo de las necesidades que se tengan para cierto problema, se puede convertir un objeto a otro tipo, del mismo modo se puede convertir el tipo de dato a otro tipo.
+
+```{r}
+as.vector(arreglo1)
+as.character(vector1)
+```
+
+
+
+
+### Operadores de comparación
+
+    * > : mayor
+    * < : menor
+    * == : igual (para evitar confundir una asignaci?n, R usa un doble igual para comparar)
+    * ! : distinto, este simbolo se puede combinar con funciones
+    * | : o (or), el simbolo es un pipe
+    * & : y (and), el simbolo es un ampersand
+
+
+
+`Ejemplos`
+
+
+```{r}
+vector3 
+vector3 > 0   
+```
+
+El resultado es un vector con valores lógicos TRUE & FALSE, si estos valores son usados para operaciones aritmeticas, son considerados como ceros y unos. Nostros les daremos otra utilidad a los vectores de valores lógicos.
+
+```{r}
+vector1 == vector2
+```
+
+```{r}
+vector1
+vector1 != 1
+```
+
+```{r}
+matriz1 == matriz2
+```
+
+
+
+
+
+### Valores Ausentes (Missing Values)
+
+Los valores missing en *R* son asignados a un c?racter especial: NA (Not Avaliable). Existe un segundo tipo de missing que es originado por computaciones númericas, es : NaN (Not a Number).
+
+Para propósitos prácticos, ambos casos son missing y son tratados por igual
+
+`Ejemplos`
+
+```{r}
+x <- c(1,2,3,4,5,NA)
+x
+```
+
+Identificar que valores son missing
+```{r}
+x == NA #esta instrucción no realiza lo que necesitamos, le asigna a cada elemento el valor NA. Notar que incluso el editor nos señala un warning.
+```
+
+
+Deseamos un vector lógico
+```{r}
+is.na(x)
+```
+
+
+En caso de querer identificar los casos que no son NA
+```{r}
+!is.na(x) #se usa el simbolo de exclamación
+```
+
+
+Segundo tipo de missing
+```{r}
+0/0
+Inf-Inf
+```
+
+
+
+
+### índices
+
+Por medio de indice podemos acceder a elementos particulares de los objetos de R (los índices son sólo una opción, hay más opciones). 
+
+Nota. A diferencia de _Python_, los indices en _R_ inician en 1
+
+En vectores se usan corchetes (brackets)
+
+```{r}
+# Tomar el sexto valor
+vector1[6]
+```
+
+```{r}
+# Tomar todo el vector a excepción de la segunda posición
+vector1[-2]
+```
+
+```{r}
+# Tomar la primera, tercera y quinta posición
+vector2[c(1,3,5)]
+```
+
+
+
+`Ejercicio`. Seleccionar los elementos que sean mayores a 5
+
+```{r}
+# opción 1
+vector2
+vector2[vector2>5]
+```
+
+
+```{r}
+#opción 2 (y en particular mi preferida por sintaxis)
+filtro1 <- (vector1 > 5)
+filtro1 # vector lógico que nos indica que posiciones cumplen la condición
+
+vector1[filtro1]
+```
+
+
+
+
+
+Por medio de índices también se pueden reemplazar  valores de un objeto
+
+```{r}
+vector2
+vector2[1] <- 1
+vector2[6] <-NA
+vector2
+```
+
+
+Precaución, los operadores de comparación no funcionan con los NA
+```{r}
+vector2 > 3
+vector2[vector2 > 3]
+```
+
+
+Ejemplos con Matrices y objetos de más de una dimensión. Al igual que con los vectores se pueden acceder a los valores de objetos por medio del uso de corchetes.
+
+```{r}
+matriz1
+matriz1[2,3]
+```
+
+Se puede notar que se usan 2 índices, el primero indica el número de fila y el segundo el número de columna
+
+
+Extraer la primera y tercera fila y todas las columnas
+```{r}
+matriz1[c(1,3),]  #El truco aquí es omitir el segundo índice
+```
+
+
+### Segunda opción de acceder a datos particulares de los elementos en R
+
+Si el objeto tiene nombres asignados para ciertos elementos, podemos hacer referencia a ellos por medio del simbolo de pesos ($)
+
+```{r}
+tabla1
+```
+
+Acceder al vector que indica la altura
+```{r}
+tabla1$altura1
+```
+
+
+Combinando esta opción con índices, quinto elemento de la altura
+
+```{r}
+filtro.altura <- tabla1$altura1 > 150 &  tabla1$altura1 < 170
+filtro.altura
+sum(filtro.altura)
+```
+
+```{r}
+tabla1$altura1[filtro.altura]
+```
+
+```{r}
+# tabla 1 con filtro
+tabla1[filtro.altura,]
+```
+
+
+```{r}
+# tabla con filtro
+tabla3 <- tabla1[c(14,14,15,15),]
+tabla3
+row.names(tabla3)
+```
+
+
+Otros ejemplos de acceder a los elementos de un objeto
+```{r}
+tabla1[1,2]
+tabla1[1,]
+```
+
+
+
+Ejemplo con listas
+```{r}
+lista2
+lista2$tres
+lista2$tres$peso
+
+lista2[[3]]
+lista2[[3]]$altura
+```
+
+
+
+### Iteraciones y condiciones 
+
+**Uso del for**
+
+Inicializar una matriz de NAs
+```{r}
+n <- length(vector1)
+m <- 5
+matriz.ciclo <- matrix(NA,nrow = n, ncol = m)
+matriz.ciclo
+```
+
+
+Ciclo
+```{r}
+for (i in 1:n) {
+    for (j in 1:m) {
+    
+      matriz.ciclo[i,j] <- (i+j)/2
+    }
+}
+
+matriz.ciclo
+```
+
+
+
+
+
+**Uso del if**
+
+Inicializar un vector
+```{r}
+vector.ciclo <- vector(length = n)
+vector.ciclo
+```
+
+
+```{r}
+for (i in 1:n) {
+  
+  if (i < 5) { vector.ciclo[i] <- "<5"}
+  if (i > 5) { vector.ciclo[i] <- ">5"}
+  
+}
+
+vector.ciclo
+```
+
+
+Mismo ejemplo, para evidenciar el tipo de conversión de datos en automático
+
+```{r}
+vector.ciclo <- vector(length = n)
+vector.ciclo
+```
+
+```{r}
+for (i in 1:n) {
+  
+  if (i < 5) { vector.ciclo[i] <- 0}
+  if (i > 5) { vector.ciclo[i] <- 1}
+  
+}
+
+vector.ciclo
+```
+
+
+
+
+
+### Funciones predefinidas
+
+
+Calculos númericos
+
+* sqrt()
+* min()
+* max()
+* pmin()
+* pmax()
+* sum()
+* which.min()
+
+```{r}
+x <- c(8,3,9,2,5)
+x
+min(x)
+which.min(x)
+
+```
+
+
+Transformar tipos de datos
+
+* as.character()
+* as.numeric()
+* as.factor()
+* as.matrix()
+* as.data.frame()
+
+Funciones útiles para variables (campos de tablas)
+
+* order()
+* sort()
+* rev()
+* unique()
+* duplicated()
+
+Funciones adicionales
+
+* paste()
+* substr()
+* class()
+* object.size()
+* format()
+
