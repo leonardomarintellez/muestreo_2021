@@ -27,7 +27,7 @@ Conocer las características generales de una población.
 
 Deseamos que sea una muestra representativa, es decir, que la variable de interés presente una distribución semejante a la población.
 
-Lo anterior nos lleva apreguntarnos por un tamaño de muestra 'apropiado'. A veces erroneamente se cree que un tamaño de muestra del 10% de tu población es apropoado.
+Lo anterior nos lleva apreguntarnos por un tamaño de muestra 'apropiado'. A veces erroneamente se cree que un tamaño de muestra del 10% de tu población es apropiado.
 
 **Ejercicio**. Pensar un ejemplo donde un tamaño menor al 10% sea representativo y otro ejemplo donde un 10% no sea suficiente.
 
@@ -56,7 +56,7 @@ Es un subconjunto de la población. Son elementos seleccionados del marco muestr
 * UPM (unidad primaria de muestreo).
 
 Son las unidades que seleccionamos en una muestra. Ejemplo, nos interesa estudiar el ingreso de las personas en una colonia, pero por conveniencia seleccionamos hogares o viviendas de la colonia y ntrevistamos a las personas de esas viviendas seleccionadas.
-
+  
 ## Tipos de muestra
 
   - No probabilistica
@@ -101,7 +101,7 @@ Este tipo de sesgo puede darse por:
 
 - Las personas no siempre dicen la verdad (ingresos / uso de drogas). pueden dar respuestas correctas sin intención como el parentezco con cierto familiar.
 - Los entrevistadores registran mal las respuestas. 
-- Se puede afectar la presición de las respuestas al dar un todo específco a una pregunta o la forma de redacción de la misma.
+- Se puede afectar la precisión de las respuestas al dar un todo específco a una pregunta o la forma de redacción de la misma.
 - Diferencias culturaes. Una palabra puede siignificar cosas disyintas en ciertas regiones.
 
 
@@ -110,4 +110,165 @@ Este tipo de errores puede ser controlado poniendo mayor dedicacción a la const
 **Error muestral**
 
 Contrario a las fuentes anteriores, este error puede ser medido utilizando métodos estadísticos y por lo tanto hay opciones para disminuirlo o controlarlo con el diseño de la muestra.
+
+
+
+## Pasos para realizar una encuesta por muestreo
+
+1. Establecimiento de objetivos
+2. Definición de la población
+3. Marco
+4. Diseño de la muestra
+5. Método de medición
+6. Instrumento de medición
+7. Prueba piloto
+8. Organización de trabajo en campo
+9. Manejo de la información
+10. Análisis de datos
+
+
+## Propiedades deseables de un Estimador
+
+**Estimador**. Es una función de la la muestra que no tiene involucrados parámetros desconocidos y se construye para estimar un parámetro de la población. Nota, este valor varia de muestra a muestra.
+
+**Estimación**. Es el valor que toma el estimador una vez observados los valores de la muestra.
+
+**Distribución muestral**. Es la función de distribución de un estimador.
+
+`Ejercicio.` Dar 3 ejemplos de funciones de distribución y su uso. Para un repaso de funciones de distribución se puede consultar el libro _Hassets, Stewart. Probability for Risk Management_.
+
+
+Ejemplo sencillo. se tienen 6 individuos a los cuales se les midió cierta característica 
+
+```{r echo=FALSE}
+suppressMessages(library(tidyverse))
+```
+
+
+
+```{r}
+individuos <- c("individuo1","individuo2","individuo3","individuo4","individuo5","individuo6")
+caracteristica <- c(0,1,2,3,4,5)
+
+tabla <- data.frame(individuos,caracteristica)
+tabla
+```
+
+Considerando estos individuos  como nuestra población, el promedio de la carácteristica es
+
+$$\bar{X} = \frac{\sum x_{i}}{n} = \frac{15}{6} = 2.5 $$
+
+
+Ahora, con una muestra de tamaño 2 se desea estimar el promedio. Si se selecciona una muestra aleatoria  de tal manera que cualquier muestra de tamaño 2 tenga la misma probabilidad de ser seleccionada, ¿Cuántas muestra posibles hay?
+
+$${6 \choose 2} = \frac{6!}{2!4!} = 15$$
+
+Podemos calcularlas a mano (lo que sería muy ineficiente a medida que el tamaño de nuestra población crece) o podemos tomar ventaja de las herramientas ya desarrolladas.
+
+La función combn nos permite generar las combinaciones. Por practicidad lo haremos directamente sobre la caraterística, pero notra que también se podría hacer para los individuos y después manipular la tabla previa.
+```{r}
+combinaciones <- combn(caracteristica,2)
+combinaciones
+```
+
+El resultado es una matriz de 2x6, le daremos una estructura de tabla
+
+```{r}
+tabla_combinaciones <- data.frame(t(combinaciones))
+tabla_combinaciones
+```
+
+El procedimiento de selección aleatorio implica que cualquiera de las muestras tiene la misma probabilidad de ser seleccionada, es decir, no se favorece más una muestra sobre las otras. En este caso, cada muestra aleatoria de tamaño 2 tiene porobabilidad $\frac{1}{15}$
+
+Con los valores de cada muestra podemos obtener la distribución muestral del estimador
+
+```{r}
+distribucion_muestral <- tabla_combinaciones %>% mutate(promedio = (X1+X2)/2)
+distribucion_muestral
+```
+
+¿Cuantos valores distintos de promedio hay?
+```{r}
+distribucion_muestral %>% select(promedio) %>% pull() %>% unique()
+distribucion_muestral %>% select(promedio) %>% pull() %>% unique() %>% length()
+```
+
+
+Generemos el histograma de la distribución muestral.
+```{r}
+# Extraer la variable promedio y que el objeto sea un vector
+x_barra <- distribucion_muestral %>% select(promedio) %>% pull()
+
+# Graficar de forma sencilla
+hist(x_barra, breaks = 15)
+```
+
+**Recomendación**. Para viasualización de datos la siguiente referencia es muy buena, se centra en como presentar los datos de manera adecuada. _Cole Nussbaumer. Storytelling with Data_.
+
+
+La siguiente figura ilustra distintos valores que pueden tomar los estimadores.
+
+![Estimadores](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/bias_and_variance.png)
+
+Las propiedades deseables para nuestros estimadores son:
+
+- **unbiashed**. Esto es, es que el promedio de los valores que puede tomar coincida con el verdadero valor del parámetro, es decir, la esperanza del del estimador sea el parámetro.
+
+$$E(\hat{\theta}) = \theta$$
+
+- **precise**. Esto es, si la varianza del estimador es pequeña.
+
+$$V(\hat{\theta}) = E[{(\hat{\theta} - E(\hat{\theta}))}^2]$$
+
+- **accurate**. Esto es, si su error cuadratico medio (MSE por sus siglas en inglés) es pequeño.
+
+$$MSE(\hat{\theta}) = E[{(\hat{\theta} - \theta)}^2]$$
+
+Se puede probar que
+
+$$MSE(\hat{\theta}) = V(\hat{\theta}) + {Sesgo(\hat{\theta)}^2$$
+
+Nota. 
+ $$Sesgo(\hat{\theta}) = E(\hat{\theta}) - \theta$$
+
+
+Estas propiedades no son exclusivas del muestreo, también aplican a modelos predictivos. Dado que nuestras estimaciones pueden tener error de sesgo y varianza,  usualmente se busca minimizar el **mse**.
+
+
+
+![Estimadores](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/overfitting.png)
+
+
+## Teorema Central del Límite
+
+Sea $x_{1}, x_{2}, ... , x_{n}$ una muestra aleatoria de una función de dstribución con media $\mu$ y varianza $\sigma^{2}$  y sea $\bar{x} = \frac{\Sigma x_{i}}{n}$ para n suficientemente grande, se tiene que $\bar{x}$ se distribuye : 
+
+$$  N(\mu,\frac{\sigma^2}{n})$$
+
+
+Vemos que la varianza se ve afectada por el tamaño $n$. Así, mientras más grande el tamaño de $n$, La varianza será menor.
+
+Podemos estar interesados en hacer inferencia sobre muchos distintos indicadores de una población, no obstante, historicamente el principal desarrollo de la teoría de muestreo ha sido estimar promedios y totales, es por ello que nos es útil el teorema central del límite.
+
+
+Se ha establecido empíricamente la velocidad de convergencia a la distribución normal dependiendo de la distribución de la variable de interés de la población.
+
+
+
+![Estimadores](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/aproximacion_normal.png)
+
+**Ejercicio**. Mediante simulación, crear la distribución muestral de la media para ejemplificar el teorema central del límite.
+
+Pasos. 
+a) Generar datos de una distribución uniforme. (Graficar para corroborar).
+b) obtener k muestras aleatorias de los datos generados en a).
+c) a cada muestra del paso b) calcular su promedio. 
+d) tendremos k promedios, graficar un histograma de esos k promedio.
+
+
+Pregunta. 
+¿Qué pruebas existen para validar si una distribución es normal?
+
+
+**Extra** ¿Qué debe cumplir un generador de número aleatorios para considerarse un buen generador?
 
