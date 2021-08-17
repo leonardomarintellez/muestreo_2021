@@ -1,0 +1,26 @@
+---
+title: "Limpieza de Datos"
+author: "FES Acatlán"
+date: "agosto de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Limpieza y tratamiento de datos faltantes (missing values) 
+
+La limpieza y tratamiento de datos faltantes es un problema común en el análisis de datos. 
+
+La siguiente tabla muestra algunos ejemplos comunes de errores al recabar información.
+
+
+
+![bad data](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/bad_data.png)
+
+
+Fuente: Tabla tomada del libro _Daniel T. Larose. Discovering Knowledge In Data An Introduction To Data Mining_.
+
+
+Lectura recomendada (pueden consultar el artículo en el repositorio de la clase). _Treatment of missing data_.
