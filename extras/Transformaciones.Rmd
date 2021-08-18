@@ -1,0 +1,73 @@
+---
+title: "Transformaciones"
+date: "agosto 2021"
+output: html_document
+---
+
+
+## Transformación z-score
+
+
+Consideremos unos datos que se distribuyen de uniforme. Los datos se encuentrar entre cero y uno
+
+```{r}
+# 10,000 datos con distribución uniforme
+u <- runif(10000)
+
+# visualizar la distribución (histograma)
+hist(u)
+```
+
+Realizamos la transformación z-score
+
+$$z = \frac{x - mean(x)}{sd(x)}$$
+
+Notar que ahora la distribución de los datos no cambia, simplemente cambió su escala. en este caso ahora se concentran entre -1.5 y 1.5. 
+
+
+```{r}
+mu <- mean(u)
+sd <- sd(u)
+
+z <- (u - mu) / (sd)
+
+#Graficamos la nueva variable
+hist(z)
+```
+
+
+
+## Transformación Min-Max
+
+Consideremos unos datos que se distribuyen de forma normal como ejemplo.
+Notar que la mayoría de los datos están entre el intervalo -3 y 3
+
+
+```{r}
+# 10,000 datos con distribución normal con media cero y desviación estándar uno
+x <- rnorm(10000, mean= 0, sd = 1)
+
+# visualizar la distribución (histograma)
+hist(x)
+```
+
+Realizamos la transformación Min-Max
+
+
+$$z = \frac{x - min(x)}{max(x) - min(x)}$$
+
+Notar que ahora los datos quedan acotados en el rango cero a uno, pero la variable se sigue distribuyendo igual. Los datos siguen siendo normales, pero fueron reescalados. 
+
+
+```{r}
+minimo <- min(x)
+maximo <- max(x)
+
+z <- (x- minimo) / (maximo - minimo)
+
+#Graficamos la nueva variable
+hist(z)
+```
+
+**En Resumen**. Ambas transformaciones reescalan los datos, una hace que los datos reescalados tengan media cero y otra hace que los datos queden acotados entre cero y uno.
+
