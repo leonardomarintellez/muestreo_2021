@@ -183,21 +183,25 @@ El procedimiento de selección aleatorio implica que cualquiera de las muestras 
 Con los valores de cada muestra podemos obtener la distribución muestral del estimador
 
 ```{r}
-distribucion_muestral <- tabla_combinaciones %>% mutate(promedio = (X1+X2)/2)
-distribucion_muestral
+estimaciones <- tabla_combinaciones %>% mutate(promedio = (X1+X2)/2)
+estimaciones
 ```
 
-¿Cuantos valores distintos de promedio hay?
+Ditribución muestral
 ```{r}
-distribucion_muestral %>% select(promedio) %>% pull() %>% unique()
-distribucion_muestral %>% select(promedio) %>% pull() %>% unique() %>% length()
+total <- dim(estimaciones)[1]
+distribucion_muestral <- estimaciones %>% 
+                          group_by(promedio) %>% 
+                          summarise(frecuencia = n(), frecuencia_relativa = frecuencia / total)
+
+distribucion_muestral
 ```
 
 
 Generemos el histograma de la distribución muestral.
 ```{r}
 # Extraer la variable promedio y que el objeto sea un vector
-x_barra <- distribucion_muestral %>% select(promedio) %>% pull()
+x_barra <- estimaciones %>% select(promedio) %>% pull()
 
 # Graficar de forma sencilla
 hist(x_barra, breaks = 15)
@@ -212,21 +216,21 @@ La siguiente figura ilustra distintos valores que pueden tomar los estimadores.
 
 Las propiedades deseables para nuestros estimadores son:
 
-- **unbiashed**. Esto es, es que el promedio de los valores que puede tomar coincida con el verdadero valor del parámetro, es decir, la esperanza del del estimador sea el parámetro.
+- **unbiashed** (insesgado). Esto es, es que el promedio de los valores que puede tomar coincida con el verdadero valor del parámetro, es decir, la esperanza del del estimador sea el parámetro.
 
 $$E(\hat{\theta}) = \theta$$
 
-- **precise**. Esto es, si la varianza del estimador es pequeña.
+- **precise** (preciso). Esto es, si la varianza del estimador es pequeña.
 
 $$V(\hat{\theta}) = E[{(\hat{\theta} - E(\hat{\theta}))}^2]$$
 
-- **accurate**. Esto es, si su error cuadratico medio (MSE por sus siglas en inglés) es pequeño.
+- **accurate** (exacto). Esto es, si su error cuadratico medio (MSE por sus siglas en inglés) es pequeño.
 
 $$MSE(\hat{\theta}) = E[{(\hat{\theta} - \theta)}^2]$$
 
 Se puede probar que
 
-$$MSE(\hat{\theta}) = V(\hat{\theta}) + {Sesgo(\hat{\theta)}^2$$
+$$MSE(\hat{\theta}) = V(\hat{\theta}) + {Sesgo(\hat{\theta})}^2$$
 
 Nota. 
  $$Sesgo(\hat{\theta}) = E(\hat{\theta}) - \theta$$
@@ -236,17 +240,20 @@ Estas propiedades no son exclusivas del muestreo, también aplican a modelos pre
 
 
 
-![Estimadores](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/overfitting.png)
+![overfitting](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/overfitting.png)
 
 
-## Teorema Central del Límite
+## Teorema del Límite Central
 
 Sea $x_{1}, x_{2}, ... , x_{n}$ una muestra aleatoria de una función de dstribución con media $\mu$ y varianza $\sigma^{2}$  y sea $\bar{x} = \frac{\Sigma x_{i}}{n}$ para n suficientemente grande, se tiene que $\bar{x}$ se distribuye : 
 
 $$  N(\mu,\frac{\sigma^2}{n})$$
 
 
+
 Vemos que la varianza se ve afectada por el tamaño $n$. Así, mientras más grande el tamaño de $n$, La varianza será menor.
+
+![TLC1](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/TLC.png)
 
 Podemos estar interesados en hacer inferencia sobre muchos distintos indicadores de una población, no obstante, historicamente el principal desarrollo de la teoría de muestreo ha sido estimar promedios y totales, es por ello que nos es útil el teorema central del límite.
 
@@ -255,13 +262,13 @@ Se ha establecido empíricamente la velocidad de convergencia a la distribución
 
 
 
-![Estimadores](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/aproximacion_normal.png)
+![TLC2](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/aproximacion_normal.png)
 
 **Ejercicio**. Mediante simulación, crear la distribución muestral de la media para ejemplificar el teorema central del límite.
 
 Pasos. 
 a) Generar datos de una distribución uniforme. (Graficar para corroborar).
-b) obtener k muestras aleatorias de los datos generados en a).
+b) obtener k muestras aleatorias de los datos generados en a) (hint, se puede usar la función sample).
 c) a cada muestra del paso b) calcular su promedio. 
 d) tendremos k promedios, graficar un histograma de esos k promedio.
 
