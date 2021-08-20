@@ -1,0 +1,279 @@
+---
+title: "2. Leer y esribir datos"
+author: "FES Acatlán"
+date: "agosto de 2021"
+output: html_document
+---
+
+## Leer datos en R
+
+Hay distintas formas de pasarle datos (tablas a R) a R
+
+
+a. Desde paquetes, instalados previamente
+b. Archivos en la nube 
+c. Descargar archivos de internet (repositorios o datos financieros)
+d. archivos de texto, csv
+e. Importar archivos de otro formato (STATA, SAS, SPSS, feather)
+f. Lectura de objetos con formato R
+g. Conexión a un servidor
+h. Extraer información en tiempo real (tweets, JSON)
+z. Crearlos nosotros
+
+**Nota. Es muy importante conocer los datos con los cuales se trabaja. El conocimiento del negocio es fundamental para identificar inconsistencias en los datos.**
+
+
+
+Limpiar el espacio de trabajo
+```{r}
+rm(list=ls()) 
+
+#Nota: ctrl + l  limpia la consola
+```
+
+
+
+### a) Desde paquetes instalados previamente
+
+```{r}
+library(datasets)
+# data()      # ver todos los datasets (data frames) en el paquete
+
+```
+
+
+Tabla de carácteristicas de lirios acuáticos
+```{r}
+data(iris)  # con esta instrucción le indicamos que deseamos este disponible un data frame que existe en cierto paquete
+head(iris)        # No siempre es conveniente mandar a la consola la tabla completa
+
+# Las tablas en los paquetes cuentan con una descripción de las mismas que podemos consultar con help(tabla)
+# help(iris) 
+
+```
+
+
+Tabla con número de vuelos 
+```{r}
+data(AirPassengers)
+AirPassengers      # Tiene formato de serie de tiempo
+```
+
+
+
+Instrucciones básicas para conocer la estructura de la tabla
+
+```{r}
+suppressMessages(library(tidyverse))
+
+str(iris) #str : structure  7 glimpse
+glimpse(iris)
+head(iris,n=10) # primeras n observaciones
+tail(iris,n=10) # últimas n observaciones
+class(iris)
+
+str(AirPassengers)
+class(AirPassengers)
+
+vuelos <- as.vector(AirPassengers)
+vuelos
+```
+
+
+
+
+
+### b) Leer archivos ubicados fuera del equipo
+
+Se combina la función read csv con la función url, aunque es posible acceder a los datos sin usar url
+
+```{r}
+credit_data <- read_csv(url("https://raw.githubusercontent.com/leonardomarintellez/muestreo_2021/master/datos/credit_data.csv"))
+head(credit_data)
+glimpse(credit_data)
+```
+
+
+
+
+### c) Descargar archivos
+
+
+
+La siguiente pagina contiene casi 400 datasets relacionadas con machine learning [UCI Machine Learning Repository](http://archive.ics.uci.edu/ml/index.php)
+
+
+Función para descargar los datos
+```{r}
+# Establecer área de trabajo donde se quiere almacenar los datos descargados
+setwd("/home/leonardo/Descargas/")
+getwd() # Nos dice la ruta donde estamos trabajando
+
+# help("download.file")
+download.file("http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data","copy_iris.csv")
+
+```
+
+
+
+### d) Archivos de texto, csv
+
+
+Leer los datos que previamente se descargaron. 
+```{r}
+# help("read.table")
+copy_iris <- read.table("/home/leonardo/Descargas/copy_iris.csv",header=FALSE,sep=",")
+head(copy_iris)
+```
+
+
+Asignar nombres a los campos
+```{r}
+names(copy_iris) <- c("sepal_length","sepal_width","petal_length","petal_width","class")
+head(copy_iris)
+
+```
+
+
+Ejemplo de lectura de datos con valores missing
+ 
+En este ejemplo si se cuenta con encabezados. Se trata de datos simulados para determinar las características con las que cuenta un individo para que se le apruebe un crédito
+
+```{r}
+base_credito <- read.table(file="/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/datos/credit_data.csv",header=TRUE,sep=",")
+base_credito
+glimpse(base_credito)
+```
+
+
+
+
+Los valores "." deben ser interpretados como missings . No deseamos las variables categóricas sean tratadas como factor
+
+```{r}
+# help("read.table")
+base_credito <- read.table("/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/datos/credit_data.csv",header=TRUE,sep=",",na.strings = c(".","NA",""),stringsAsFactors = FALSE)
+base_credito
+str(base_credito)
+
+```
+
+
+
+### e) Importar archivos de otro formato (SAS)
+
+Se requiere cargar la librería haven para leer datos en formato sas
+```{r}
+# Cargar Librería 
+library(haven)
+```
+
+
+Los datos pertenecen al Censo de Población y Vivienda 2010
+
+```{r}
+personas <- read_sas("/home/leonardo/Documentos/Acatlan/datos/Censo2010/DUMMY_PERSONAS.sas7bdat")                  
+# str(ennvih)
+head(personas)
+dim(personas)
+```
+
+Estructura de la tabla
+```{r}
+glimpse(personas)
+```
+
+
+Respecto a los objetos anteriores, esta tabla es cosiderablemente más grande. Es una tabla de más de 1 millón de registros, revisar cuanto pesa en memoria
+```{r}
+format(object.size(personas),"MB")
+```
+
+`Ejercicio`. Revisar como se le puede cambiar el formato a las variables.
+
+
+Ver la tabla de características de la vivienda
+```{r}
+viviendas <- read_sas("/home/leonardo/Documentos/Acatlan/datos/Censo2010/DUMMY_VIVIENDAS.sas7bdat")                  
+glimpse(viviendas)
+```
+
+
+### f) Lectura de objetos con formato R
+
+
+La función loadRDS nos permite leer objetos en formato R guardados previamente
+```{r}
+tabla <- readRDS("/home/leonardo/Descargas/credit_data.rds")
+glimpse(tabla)
+```
+
+
+
+### g) Conexion a un servidor
+
+Si tienen conexón a un servidor las siguientes líneas les permitiran consultar la información con comandos SQL.
+
+Se requiere la librería RODBC 
+```{r}
+# install.packages("RODBC", dependencies=TRUE)
+```
+
+```{r}
+# Cargar librería
+# library(RODBC)
+```
+
+Crear conexion. 
+
+* Elegir servidor o escribir manualmente en la ventana que saldrá la ruta del servidor deseado 
+* Palomear la opcion de Trusted connection
+
+```{r}
+# conexion <- odbcDriverConnect(connection="Driver={SQL Server Native Client 11.0};trusted_connection=yes;")
+```
+
+Leer los datos	
+```{r}
+# datos <- sqlQuery(conexion, "SELECT * FROM  [DWH_STAGING].DBO.TABLA")
+# datos <- sqlQuery(conexion, "SELECT * FROM  ##TEMPORAL")
+
+```
+
+Truco. si crean tablas temporales con doble simbolo de gato (##) en el servidor, podrán acceder a ellas con R
+
+
+
+## Escribir datos en R
+
+Formatos:  
+
+* formato tipo R (rds)
+* exportar a csv o txt
+
+Utilizar la función saveRDS. El objeto se almacena en un archivo con el nombre que se especifica, pero a la hora de leerlo, el objeto se puede leer asignándole un nombre distinto.
+
+Nota. Almacenar un objeto tipo R es útil cuando se tiene crea una tabla que es resultado de un proceso que consume bastante tiempo.
+```{r}
+saveRDS(credit_data,file="/home/leonardo/Descargas/credit_data.rds")
+```
+
+
+`Ejemplos`
+
+* Exportar a csv la tabla credit_data
+* Exportar a txt la tabla credit_data
+
+```{r}
+write.csv(credit_data,"/home/leonardo/Descargas/credit_data1.csv",row.names=FALSE)
+```
+
+
+```{r}
+write.table(credit_data,file="/home/leonardo/Descargas/credit_data2.txt",sep="\t",row.names=FALSE,col.names=TRUE)
+```
+
+
+Como podrán notar hay muchas maneras de cargar los datos y leer los datos. Hay un nuevo formato que está ganando popularidad por ser ligero (almacena los datos en formato binario) y porque esta diseñado para leerse tanto en R como Python. El formato es feather y fue implementado por Hadley Wickham (creador del tidyverse) y Wes McKinney (creador de Pandas).
+
+

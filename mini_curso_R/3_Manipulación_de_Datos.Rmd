@@ -1,0 +1,380 @@
+---
+title: "3. Manipulación de Datos"
+author: "Fes Acatlán"
+date: "agosto de 2021"
+output: html_document
+---
+
+
+## Forma *deseable*  de los datos
+
+Para muchos de los análisis queremos que los datos estén en formato *tidy*.
+
+- Ver el artículo [**Tidy Data**](http://vita.had.co.nz/papers/tidy-data.pdf) de Hadley Wickham
+
+- Pero hay ejemplos donde no queremos *tidy data* e.g. [**Non Tidy Data**](http://simplystatistics.org/2016/02/17/non-tidy-data/)
+
+- O grafos (reciente auge)
+    
+
+
+![Tidy Data](http://r4ds.had.co.nz/images/tidy-1.png)
+
+Es decir:
+
+1. Cada *variable* una columna
+2. Cada *observación* un renglón
+3. Cada *valor* una celda
+
+
+
+## Tidyverse
+
+El [tidyverse](https://www.tidyverse.org/) es un sistema coherente de paquetes para manipulación, exploracion y visualización de datos diseñados con una filosofia común. El precursor del tidyverse es [Hadley Wickham](http://hadley.nz/)
+
+Ventajas
+
+* Consistencia
+* Covertura
+* Su uso se ha convertido en un 'gold standar'
+* Educación
+* Parsimonía
+* Productividad
+
+
+
+
+
+## ¿Por qué usar `dplyr` (paquete del tidyverse)?
+
+* Diseñado para exploración y transformación de tablas
+* Intuitivo para escribir y leer código, especialmente usando `pipelines`
+
+
+
+### Los 5 principales verbos de dplyr
+
+* Filtrar observaciones (filter)
+* Seleccionar variables (select)
+* Ordenar observaciones (arrange)
+* Crear nuevas variables (mutate)
+* Colapsar información (summarise)
+
+
+Adicionalmente, se pueden usar con group_by que cambia el dominio de cada función, pasando de operar en el conjunto de datos completos a operar en grupos (bloques).
+
+Limpiar area de trabajo
+```{r}
+rm(list=ls()) 
+```
+
+
+
+Leer los paquetes que utilizaremos
+
+```{r}
+# Cargar paquetes
+suppressMessages(library(tidyverse))
+suppressMessages(library(nycflights13))
+
+```
+
+```{r}
+
+# vuelos <- readRDS("C:/Users/leona/Documents/flights.rds")
+# head(vuelos)
+
+# Explorar los datos
+# help("flights")
+
+data(flights)
+head(flights)
+glimpse(flights) 
+```
+
+
+### Filter 
+
+
+```{r results='hide'}
+# Enfoque de R Base 
+flights[flights$month==1 & flights$day==1, ]
+```
+
+```{r}
+# Enfoque dplyr
+# Las comas representan AND
+filter(flights,  month==1, day==1)
+# Los pipes representan OR
+filter(flights, carrier=="AA" | carrier=="UA")
+```
+
+```{r results='hide'}
+# Alternativa, usar el oprerador %in% 
+filter(flights, carrier %in% c("AA", "UA"))
+```
+
+```{r}
+# conservar casos donde no haya missings
+flights %>% filter(!is.na(dep_time))
+
+```
+
+
+`Ejemplo`
+
+a. Encuentra todos los vuelos hacia SFO y OAK
+b. Los vuelos con un retraso mayor a una hora.
+
+
+```{r}
+# no olvidar la 'c' del vector
+filter(flights, dest %in% c("SFO","OAK"))
+```
+
+
+```{r}
+filter(flights, dep_delay > 60 | arr_delay > 60)
+```
+
+
+### Select
+
+
+```{r results='hide'}
+# Enfoque R Base 
+flights[, c("dep_time", "arr_time", "flight")]
+```
+
+```{r}
+# Enfoque dplyr
+select(flights, dep_time, arr_time, flight)
+```
+
+`Ejemplo`. Encuentra 3 formas de seleccionar las variables de retraso (delay)
+
+
+```{r}
+select(flights,dep_delay,arr_delay)
+select(flights,contains("delay"))
+select(flights,ends_with("delay"))
+```
+
+
+### Arrange
+
+```{r results='hide'}
+# Enfoque R Base
+flights[order(flights$dep_delay), c("carrier", "dep_delay")]
+```
+
+```{r}
+# Enfoque dplyr
+arrange(flights,carrier,dep_delay)
+```
+
+Se puede elegir que una de las variables tenga orden descendente, por default se ordena de manera ascendente
+
+```{r}
+# Enfoque dplyr
+arrange(flights,carrier,desc(dep_delay))
+```
+
+`Ejemplo`. ¿Cuáles son los vuelos con mayor retraso de llegada?
+
+```{r}
+arrange(flights,flight,desc(arr_delay))
+```
+
+
+
+### Mutate
+
+```{r results='hide'}
+# Enfoque R Base 
+# Crear una nueva variable 'velocidad' en mph
+flights$speed <- 60*(flights$distance / flights$air_time)
+
+```
+
+```{r}
+# Enfoque dplyr 
+flights <- mutate(flights, speed = 60*(distance/air_time))
+
+```
+
+
+
+### Summarise
+
+Obtener estadísticos
+
+```{r}
+summarise(flights,avg_delay = mean(arr_delay))
+```
+
+Nos arroja como resultado `NA`, una forma de solucionarlo es
+
+```{r}
+summarise(flights,avg_delay = mean(arr_delay, na.rm=TRUE))
+```
+
+
+```{r}
+summarise(flights,
+          avg_delay = mean(arr_delay, na.rm=TRUE),
+          min_delay = min(arr_delay, na.rm=TRUE),
+          max_delay = max(arr_delay, na.rm=TRUE))
+```
+
+
+
+### Operador pipeline 
+
+Operador pipeline
+En **R** al igual que en Excel, cuando se concatenan varias operaciones o funciones es difícil leer y entender el código:
+
+```{r results='hide'}
+filter(summarise(group_by(filter(flights, !is.na(dep_delay)), 
+  carrier), delay = mean(dep_delay), n = n()), n > 10)
+```
+
+El operador Forward Pipe (`%>%`) facilita encadenar una serie de funciones. podemos leer `%>%` como "después".
+
+Veamos como cambia el c?digo anterior:
+
+```{r}
+flights %>%
+  filter(!is.na(dep_delay)) %>%
+  group_by(carrier) %>%
+  summarise(delay = mean(dep_delay), n = n()) %>%
+  filter(n > 10)
+
+```
+
+
+`Ejemplo`. ¿Qué destinos tienen el promedio de retrasos de llegada má alto?
+
+
+```{r}
+flights %>%
+  filter(!is.na(dep_delay)) %>%
+  group_by(carrier) %>%
+  summarise(delay = mean(dep_delay), n = n()) %>%
+  arrange(desc(delay)) %>% 
+  head()
+
+```
+            
+Nota. Al usar la funcion summarise sobre una tabla agrupada, ésta pierde un nivel de agrupación.
+
+
+Funciones útiles
+
+* `n()` cuenta el número de registros en un grupo
+* `n_distinct(vector)` cuenta el número de elementos únicos en un vector
+* `lead` and `lag` para desplazar los registros 
+* `top_n` conserva los primeros registros
+* `slice` filtra registros por posición
+* `sample_n` genera una muestra aleatoria de tama?o `n`, sin reemplazo
+
+
+
+Ejemplos simples usando funciones de dplyr 
+
+
+```{r}
+
+# Usar un signo de menos sirve para quitar columnas
+flights %>% select(-month, -day)
+
+# Eliminar un rango de columnas
+flights %>% select(-(dep_time:arr_delay))
+
+# Eliminar columnas que cumplan un cr?terio
+flights %>% select(-contains("time"))
+
+# Renombrar columnas
+tabla <- flights %>% rename(mes = month)  #nombre nuevo = nombre actual 
+names(flights)
+names(tabla)
+
+# Filtrar por posici?n
+flights %>% slice(1000:1005)
+
+# seleccionar una muestra
+flights %>% group_by(year, month) %>% sample_n(3)
+
+# Conservar el top n registros, si se omite el ?ltimo par?metro se toma la ?ltima variable de la tabla como ponderador
+flights %>% group_by(year, month) %>%  arrange(desc(dep_delay)) %>% top_n(3, dep_delay)
+
+# identificar las distintas categorias de una variable
+flights %>% select(origin, dest) %>% distinct()
+
+```
+
+
+`Ejercicio`. Dar una alternativa a este último ejemplo.
+
+
+`Ejemplo`. Contar el numero de vuelos por mes y crear una variable que sea la diferencia de vuelos respecto al mes previo.
+
+```{r}
+
+tabla <- flights %>%
+          group_by(year,month) %>%
+          summarise(flight_count = n()) %>%
+          mutate(lag_flight_count = lag(flight_count),
+                  change = flight_count - lag_flight_count)
+
+tabla
+```
+
+
+
+
+### Union de tablas 
+
+Los principales tipos de uniones son **inner_join**, **full_join** y **left_join**
+
+```{r}
+# Crear dos tablas de prueba
+(tabla_a <- data_frame(color = c("green","yellow","red"), num = 1:3))
+(tabla_b <- data_frame(color = c("green","yellow","pink"), size = c("S","M","L")))
+
+```
+
+si no se especifica la variable de uni?n, autom?ticamente la union se realiza por las variables que aparecen en ambas tablas. Lo m?s recomendable es siempre especificar las variables de uni?n.
+
+```{r}
+# Solo conserva registros que hacen match por la llave especificada en ambas tablas
+inner_join(tabla_a, tabla_b)
+
+# El resultado incluye todas las observaciones de ambas tablas
+full_join(tabla_a, tabla_b)
+
+# El resultado incluye todas las observaciones de la tabla1
+left_join(tabla_a, tabla_b)
+```
+
+left_join es la forma más usual de unir tablas pues generalmente se pegan catálogos de información a una tabla.
+
+```{r}
+left_join(tabla_a, tabla_b, by = "color")
+```
+
+
+Si las variables en las tablas no se llaman igual, la unión se especifica de la siguiente forma
+
+```{r}
+tabla_c <- tabla_b %>% rename( col = color)
+left_join(tabla_a, tabla_c, by=c("color" = "col"))
+```
+
+
+
+`Extra`
+
+* Leer sobre expresiones regulares. Esto con el fin de que tengan mayor idea de manipular datos de tipo carácter. 
+
+
