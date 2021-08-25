@@ -1,0 +1,214 @@
+---
+title: "Muestreo Aleatorio Simple"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+
+Este esquema de muestreo es el más usado cuando se tiene un marco de muestreo que especifique la manera de identificar cada unidad en la población.
+
+De una población de $N$ unidades, se selecciona una muestra de tal mandera que todas las unidades de la población tienen la misma probabilidad de ser seleccionadas. Como consecuencia, la probabilidad de que un elemento esté en la muestra es $\frac{n}{N}$, suele denotarse por $\pi_{i}$. También se le conoce como probabilidad de inclusión de prmer orden. 
+Al inverso de $\pi_{i}$ se le conoce como factor de expansión o peso muestral.
+
+
+De manera ilustrativa veanlo como una urna donde se selecciona un elemento a la vez hasta tener $n$
+
+
+```{r}
+urna <- paste("papelito",1:100, sep = " ")
+urna
+```
+
+
+Generamos un número aleatorio entre 1 y el número total de elementos. Esto lo podemos hacer usando un número aleatorio (uniforme entre cero y uno) y transformandolo. si $u$ se distribuye $unif(0,1)$, entonces $c = (b-a)*u + a$ se distribuye $unif(a,b)$ 
+
+```{r}
+u <- runif(1) # 1 número aleatorio uniforme entre cero y uno
+a <- 1
+b <- 100
+
+c <- floor((b-a)*u + a) 
+print(c)
+```
+
+Extraemos el elemento elegido por el número aleatorio y repetimos el proceso hasta seleccionar $n$ elementos. Notar que ahora nuestra urna sólo contendrá 99 elementos.
+
+Generemos un ciclo para este proceso. Lo haremos para 15 elementos.
+
+
+```{r}
+
+# inicializamos nuestros objetos, urna y muestra (vacia)
+urna <- paste("papelito",1:100, sep = " ")
+muestra <- vector(length = 15)
+
+#inicia el ciclo
+for (i in 1:15){
+  #Determinar la longitud de la urna
+  k <- length(urna)
+  # El número de elemento que elegiremos
+  elemento <- floor((k-1)*runif(1) + 1)
+  
+  # Imprimir en pantalla que indice y elemento fueron seleccionados
+  print(paste(elemento,urna[elemento],sep = " - "))
+  
+  # asignamos el elemento seleccionado a la muestra y actualizamos nuestra urna
+  muestra[i] <- urna[elemento]
+  urna <- urna[-elemento]
+  
+}
+
+
+```
+
+
+Este sólo es ilustrativo, en la practica utilizaremos funciones ya programadas en algun paquete, (a menos que sus necesidades requieran utilizar su propio algoritmo de números aleatorios).
+
+Para seleccionar muestras de vectores se puede usar la función `sample`, mientras que para seleccionar mestras de un data frame podemos usar la función `sample_n` del paquete _dplyer_.
+
+ Otra manera de ejemplificar el muestreo aleatorio simple sin reemplazo es crear valores aleatorios uniformes para cada registro y filtrar donde los valores sean menores a cierto valor, por decir, menor a 0.10. Así nuestra muestra será de aproximadamente el 10% de nuestro tabla original (¿En que casos nos podría interesar tener una muestra de un cierto porcentaje del total y no un número fijo?).
+ 
+ 
+```{r}
+suppressMessages(library(tidyverse))
+```
+ 
+ 
+```{r}
+set.seed(2021)
+tabla_ejemplo <- iris %>% 
+                  mutate( u = runif(150),
+                          flag = ifelse(u <= 0.10,1,0),
+                          id = row_number())
+
+
+head(tabla_ejemplo, 30)
+
+```
+ 
+```{r}
+muestra_iris <- tabla_ejemplo %>% 
+                filter(flag == 1)
+
+glimpse(muestra_iris)
+```
+
+
+**Pregunta de control**. ¿Por qué usar una distribución uniforme y no alguna otra?. ¿Por qué no seleccionar las primeras $n$ observaciones?.
+
+
+Mediante el muestreo se desea hacer una inferencia sobre alguna o algunas carácteristicas de la población, en específico se desea calcular una estimación para algún parámetro de la población.
+
+### Parámetros Poblacionales
+
+_Ver notas a mano_
+
+### Estimadores de los parámetros poblacionales
+
+_Ver notas a mano_
+
+
+**Ejemplos**
+
+Retomemos el ejemplo de clases previas.
+
+
+```{r}
+individuos <- c("individuo1","individuo2","individuo3","individuo4","individuo5","individuo6")
+caracteristica <- c(0,1,2,3,4,5)
+
+tabla <- data.frame(individuos,caracteristica)
+#tabla
+```
+
+
+Estimaciones
+```{r}
+combinaciones <- combn(caracteristica,2)
+combinaciones
+
+tabla_combinaciones <- data.frame(t(combinaciones))
+tabla_combinaciones
+
+estimaciones <- tabla_combinaciones %>% mutate(promedio = (X1+X2)/2,
+                                               Total = 6*promedio)
+estimaciones
+```
+
+Ditribución muestral de la media
+```{r}
+total <- dim(estimaciones)[1]
+distribucion_muestral <- estimaciones %>% 
+                          group_by(promedio) %>% 
+                          summarise(frecuencia = n(), frecuencia_relativa = frecuencia / total)
+
+distribucion_muestral
+```
+
+
+
+¿Cuál es la media y varianza de la población?.
+
+
+¿Cuál es la media y varianza de la distribución muestral (los valores obtenidos a partir de todas las muestras)?
+
+
+
+Nota. El **error estándar** es la desviación estandár de la distribución muestral de nuestro estimador.
+
+
+
+**Ejemplo**
+
+Los siguientes datos representan precios de valores de casas tomados de la página de Kaggle.
+
+
+1. Tomar una muestra aleatoria de tamaño 150 elementos (casas) y calcular el estimador de la media para el precio de las casas.
+2. Tomar una muestra de 150 elementos, los primeros 150 y calcular el estimador de la media para el precio de las casas. Comparar con el estimador anterior y contra el valor promedio real (parámetro de la población).
+
+
+Leer datos
+
+```{r}
+precios <- read_csv("/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/datos/HousePrices.csv") %>% 
+          arrange(desc(SalePrice))
+          
+glimpse(precios)
+```
+
+Parámetro Poblacional
+```{r}
+precios %>% summarise(promedio = mean(SalePrice))
+```
+
+muestra1
+```{r}
+set.seed(2021)
+muestra1 <- sample_n(precios,150)
+```
+
+El esimador de esta muestra es
+```{r}
+muestra1 %>% summarise(promedio = mean(SalePrice))
+```
+
+
+
+
+muestra2
+```{r}
+set.seed(2021)
+muestra2 <- slice(precios,1:150)
+```
+
+El esimador de esta muestra es
+```{r}
+muestra2 %>% summarise(promedio = mean(SalePrice))
+```
+
+
+**Ejercicio**. Hacer un bloxplot del precio para ambas muestras 
+
+
+
