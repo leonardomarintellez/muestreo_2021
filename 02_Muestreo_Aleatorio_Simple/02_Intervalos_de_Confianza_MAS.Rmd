@@ -7,7 +7,7 @@ output: html_document
 
 ## Intervalos de confianza Muestreo Aleatorio Simple
 
-un intervalo de confianza se expresa de la siguiente manera.
+Un intervalo de confianza se expresa de la siguiente manera:
 
 Si extraemos muestra de una población, una y otra vez, y construimos un intervalo de confianza para cada muestra obtenida, esperamos que el 95% de os intervalos resultantes incluyan a nuestro parámetro $\theta$.
 

@@ -102,12 +102,23 @@ Mediante el muestreo se desea hacer una inferencia sobre alguna o algunas carác
 
 ### Parámetros Poblacionales
 
-_Ver notas a mano_
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas1.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas2.png)
 
 ### Estimadores de los parámetros poblacionales
 
-_Ver notas a mano_
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas3.png)
 
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas4.png)
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas5.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas6.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas7.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas8.png)
 
 **Ejemplos**
 
@@ -154,7 +165,7 @@ distribucion_muestral
 
 
 
-**Definición**. El **error estándar** es la desviación estandár de la distribución muestral de nuestro estimador. En otras palabras, es la 
+**Definición**. El **error estándar** es la desviación estandar de la estimación de la varianza de de nuestro estimador. Lo denotaremos por $ee$ 
 
 
 
