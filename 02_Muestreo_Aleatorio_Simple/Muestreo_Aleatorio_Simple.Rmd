@@ -1,4 +1,4 @@
----
+  ---
 title: "Muestreo Aleatorio Simple"
 author: "FES Acatlán"
 date: "septiembre de 2021"
@@ -129,7 +129,7 @@ combinaciones <- combn(caracteristica,2)
 combinaciones
 
 tabla_combinaciones <- data.frame(t(combinaciones))
-tabla_combinaciones
+tabla_combinaciones 
 
 estimaciones <- tabla_combinaciones %>% mutate(promedio = (X1+X2)/2,
                                                Total = 6*promedio)
@@ -147,7 +147,6 @@ distribucion_muestral
 ```
 
 
-
 ¿Cuál es la media y varianza de la población?.
 
 
@@ -155,13 +154,13 @@ distribucion_muestral
 
 
 
-Nota. El **error estándar** es la desviación estandár de la distribución muestral de nuestro estimador.
+**Definición**. El **error estándar** es la desviación estandár de la distribución muestral de nuestro estimador. En otras palabras, es la 
 
 
 
 **Ejemplo**
 
-Los siguientes datos representan precios de valores de casas tomados de la página de Kaggle.
+Los siguientes datos representan precios de valores de venta casas en Iowa tomados de la página de [Kaggle](https://www.kaggle.com/c/house-prices-advanced-regression-techniques).
 
 
 1. Tomar una muestra aleatoria de tamaño 150 elementos (casas) y calcular el estimador de la media para el precio de las casas.
@@ -177,10 +176,124 @@ precios <- read_csv("/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_202
 glimpse(precios)
 ```
 
-Parámetro Poblacional
+Considerando los datos anteriores como nuestra población. Veamos como se distribuye el precio de venta promedio de las casas. 
+
 ```{r}
+library(ggplot2)
+```
+
+```{r}
+ggplot(data = precios) +
+  geom_histogram(mapping = aes(x = SalePrice))
+```
+
+
+Parámetro Poblacional, el promedio del precio de venta y su varianza
+```{r}
+# Promedio
 precios %>% summarise(promedio = mean(SalePrice))
 ```
+
+
+```{r}
+# Varianza
+precios %>% summarise(promedio = var(SalePrice))
+# desviación estándar
+precios %>% summarise(promedio = sd(SalePrice))
+```
+
+Adicionalmente, con propositos descriptivos podemos generar un boxplot del precio.  ¿Qué representan los elementos de este grafico, la caja, los puntos, los brazos (bigotes)?. ¿Qué utilidad se le puede dar?
+
+```{r}
+ggplot(data = precios) +
+  geom_boxplot(mapping = aes(y = SalePrice))
+```
+
+
+
+Notar que previamente, utilizamos las funciones predefinidas por R. Construyamos las propias para poder calcular los estimadores utilizando las muestras.
+
+
+**Funciones**
+opción 1. Funciones cuyos parámetros son vectores
+equis barra $\bar_{x}$
+
+Media y Varianza Poblacionales
+
+```{r}
+media <- function(x){
+  N <- length(x)
+  resultado <- sum(x)/N
+  
+  return(resultado)
+}
+
+varianza <- function(x) {
+  N <- length(x)
+  sigma2 <- sum((x - media(x))**2)/N
+  
+  return(sigma2)
+}
+  
+  
+
+```
+
+
+```{r}
+precios %>% select(SalePrice) %>% pull() %>% media()
+precios %>% select(SalePrice) %>% pull() %>% varianza()
+precios %>% select(SalePrice) %>% pull() %>% varianza() %>% sqrt()
+```
+
+¿Por qué no obtenemos los mismos resultados que con las funciones predefinidas de R?. 
+
+```{r}
+varianza_insesgada <- function(x) {
+  N <- length(x)
+  sigma2 <- sum((x - media(x))**2)/(N-1)
+  
+  return(sigma2)
+}
+```
+
+
+```{r}
+precios %>% select(SalePrice) %>% pull() %>% varianza_insesgada()
+precios %>% select(SalePrice) %>% pull() %>% varianza_insesgada() %>% sqrt()
+```
+
+
+
+
+
+
+```{r}
+# x: vector de elementos 
+estimador_media <- function(x){
+  n <- length(x)
+  resultado <- sum(x)/n
+  
+  return(resultado)
+}
+```
+
+
+
+```{r}
+# x: vector de elementos
+# N: escalar con el valor del número total de elementos de la población
+estimador_varianza_media <- function(x, N){
+  n <- length(x)
+  S2 <- sum((x - estimador_media(x))**2)/(n-1)
+  resultado <- (1 - n/N)*(S2/n)
+  
+  return(resultado)
+}
+```
+
+
+
 
 muestra1
 ```{r}
@@ -188,27 +301,107 @@ set.seed(2021)
 muestra1 <- sample_n(precios,150)
 ```
 
-El esimador de esta muestra es
+El esimador del promedio para el precio de venta es de esta muestra es
 ```{r}
 muestra1 %>% summarise(promedio = mean(SalePrice))
+muestra1 %>% summarise(promedio = var(SalePrice))
+muestra1 %>% summarise(promedio = sd(SalePrice))
+```
+
+Utilizando las funciones que definimos
+
+```{r}
+muestra1 %>% select(SalePrice) %>% pull() %>% estimador_media()
+muestra1 %>% select(SalePrice) %>% pull() %>% estimador_varianza_media(1460)
+```
+
+¿Qué diferencia hay entre calcular la varianza de la variable de interés de los datos de la muestra y calcular el valor del estimador de la varianza?
+
+
+Retomando el TLC y el error estándar (ee), utilicemos simulación para ejemplificar
+
+La media y la varianza de toda la población es (ya lo habiamos calculado previamente):
+```{r}
+precios %>% select(SalePrice) %>% pull() %>% media()
+precios %>% select(SalePrice) %>% pull() %>% varianza()
+```
+Mediante simulación calcular el estimador de la media k veces y ver como se distribuye. Notar que hay muchas formas distintas de realizar esto, utilizaremos la siguiente
+```{r}
+library(purrr)
+
+```
+
+```{r}
+calcular_estimador <- function(){
+  muestra <- precios %>% sample_n(150)
+  valor <- muestra %>% select(SalePrice) %>% pull() %>% estimador_media()
+  
+  return(valor)
+}
+  
+```
+
+Ejecutar la función anterior que carece de parámetros 
+```{r}
+calcular_estimador()
+```
+
+Ejecutar la función k veces y almacenar los resultados en un vector. Lo que nos dará son k estimaciones del precio medio de venta.
+
+```{r}
+valores_x_barra <- rerun(1000,calcular_estimador()) %>% unlist()
+summary(valores_x_barra)
+```
+
+Recordar como se distribuía el precio de venta. La distribución de nuestro estimador se ve de la siguiente manera.
+
+```{r}
+ggplot() +
+  geom_histogram(mapping = aes(x = valores_x_barra))
+```
+
+Nota. No confundir la definición formal de una función de distribución con la expresión usada arriba. Es usual que se diga la distribución de la variable para referirse a los valores en conjunto y la forma que toma su densidad (histograma).
+
+
+Viendo la distribución del estimador ¿qué se les ocurre para crear un intervalo de confianza?, además de su primera opción, ¿qué otra opción pueden proponer teniendo los k valores de la distribución del estimador?
+
+No lo hemos definido aún pero, ¿es posible siempre construir un intervalo al 95% de confianza?
+
+
+
+```{r}
+precios %>% select(SalePrice) %>% pull() %>% varianza() 
+precios %>% select(SalePrice) %>% pull() %>% varianza() / 150 # Error Estántar Teórico
+valores_x_barra %>% varianza() # Error Estándar observado
+```
+
+
+Notar que los valores de 1 muestra representan los valores de la población, es nuestro estimador el que por el TLC cambia su distribución.
+
+```{r}
+ggplot(data = muestra1) +
+  geom_histogram(mapping = aes(x = SalePrice))
 ```
 
 
 
-
-muestra2
+muestra2. Las primeras 150 observaciones de la tabla ordenada de forma descendente por precio
 ```{r}
 set.seed(2021)
 muestra2 <- slice(precios,1:150)
 ```
 
-El esimador de esta muestra es
+El estimador de esta muestra es
 ```{r}
 muestra2 %>% summarise(promedio = mean(SalePrice))
+muestra2 %>% select(SalePrice) %>% pull() %>% estimador_media()
 ```
 
 
-**Ejercicio**. Hacer un bloxplot del precio para ambas muestras 
+```{r}
+ggplot(data = muestra2) +
+  geom_histogram(mapping = aes(x = SalePrice))
+```
 
 
-
+Antes de avanzar. Comenten que aspectos de las graficas 

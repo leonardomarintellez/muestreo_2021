@@ -1,0 +1,80 @@
+---
+title: "Intervalos_de_Confienza_MAS"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+## Intervalos de confianza Muestreo Aleatorio Simple
+
+un intervalo de confianza se expresa de la siguiente manera.
+
+Si extraemos muestra de una población, una y otra vez, y construimos un intervalo de confianza para cada muestra obtenida, esperamos que el 95% de os intervalos resultantes incluyan a nuestro parámetro $\theta$.
+
+Notar que en la realidad, no realizaremos k muestras, sino sólo realizaremos 1 muestra y no conoceremos el valor del parámetro poblacional $\theta$. 
+
+![cobertura](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cobertura_intervalos.png)
+
+**Ejercicio**. Piensen la forma de crear una gráfica similar a la anterior.
+
+
+![int conf](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/int_conf_mas1.png)
+
+![int conf](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/int_conf_mas2.png)
+
+A $\delta$ le llamaremos precisión y a $1-\alpha$ le llamaremos confianza. 
+
+Antes, eran muy utilizadas las tablas con los valores de los cuantiles de una normal
+
+![int conf](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/area_bajo_la_curva.png)
+
+¿En R como podemos obtener los valores de los cualtiles, asumiendo normalidad?
+
+```{r}
+# pnorm, nos da la probabilidad acumulada hasta cierto cuantil
+pnorm(q = 0,mean = 0, sd = 1)
+```
+
+```{r}
+# qnorm nos da el cualtil que equivale a la probabilidad acumulada
+qnorm(p = 0.5, mean = 0, sd = 1)
+```
+
+Así, para saber el cuantil que necesitamos para un intervalo de confianza del 95% para una normal con media cero y desviación estándar 1, necesitamos el cuantil 0.975 para que en cada cola haya 0.025 
+
+
+```{r}
+qnorm(p = 0.975, mean = 0, sd = 1)
+```
+
+```{r}
+#utilizando la notación de arriba
+alpha = 0.05
+valor = 1 - (alpha/2)
+print(valor)
+z <- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)
+```
+
+
+Notar que en una distribución normal, el valor de $\alpha/2$ es el mismo valor vaor que de $1 - \alpha/2$ sólo que con signo contrario
+
+```{r}
+qnorm(0.025)
+qnorm(0.975)
+```
+
+
+
+La ventaja de utilizar un software estadístico es que no estamos limitados a una distribución normal estánar, puede ser cualquier distribción con una amplia gama de parámetros.
+
+
+Definir la precisión y confianza que deseamos en un estimador, nos da un primer paso para todos los elementos que debemos considerar para obtener una muestra. 
+
+Entre 2 intervalos de confianza con el mismo nivel de confianza, preferiremos el que sea más angosto.
+
+
+**Ejercicio**. De los datos de precios de casas, obtener una muestra de tamañ0 150 y construir un intervalo de confianza.
+
+
+
