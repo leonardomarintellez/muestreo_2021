@@ -1,0 +1,193 @@
+---
+title: "02 Tamaño de Muestra MAS"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+## Tamaño de Muestra para es estimador de la media
+
+Contras en el tamaño de muestra.
+
+
+- $n$ pequeña. 
+
+  * Poca precisión.
+  * Intervalos de confianza grandes
+
+- $n$ grande.
+
+  * Costos elevados
+  * Se puede descuidar la calidad de la información 
+
+
+Bajo el supuesto de normalidad 
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_mas1.png)
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_mas2.png)
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_mas3.png)
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_mas4.png)
+
+
+De lo anterior notamos que necesitamos conocer $S^{2}$ la cual a la hora de levantar la encuesta aún no conocemos. Se tienen algunas opciones:
+
+* Usar estimadores de $S^{2}$ de encuestas similares anteriores
+* Estimar $S^{2}$ usando una encuesta piloto
+
+
+
+**Pregunta**. ¿Qué pasa si se cambia la escala de la variable, si en lugar de dolares la transformamos a pesos?
+
+
+¿Cuándo considerar a una población `infinita`?.  Para 30,000 casos el factor $\frac{1}{N}$ se hace es muy cercano a cero para fines prácticos.
+
+```{r}
+options(digits = 4)
+N <- c(30,100,500,1000,10000,30000,50000,100000)
+factor <- 1/N
+
+data.frame(N,factor)
+```
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+```
+
+```{r}
+# Leer datos
+tabla_precios <- read_csv("/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/datos/HousePrices.csv") 
+dim(tabla_precios)
+```
+
+Necesitamos conocer $S^{2}$
+```{r}
+x <- tabla_precios %>% select(SalePrice) %>% pull()
+N <- dim(tabla_precios)[1]
+
+S2 <- sum((x - mean(x))**2)/(N-1)
+S2
+```
+
+fijemos un alpha de 5% para tener un intervalo del 95%. Tomemos una precisión de 5,000 dólares
+
+```{r}
+# Fijar parámetros (no confundir la terminología de parámetros de una función con el contexto de parámetros en muestreo)
+alpha <- 0.05
+z <- qnorm(1 -alpha/2)
+delta <- 5000
+
+
+
+```
+
+```{r}
+# Función para el tamaño de muestar
+N_finita <- function(N,S2,z,delta){
+  
+  n0 <- (S2*z**2)/(delta**2) 
+  return(n0 / (1 + n0/N))
+}
+
+N_infinita <- function(S2,z,delta){
+  
+  n0 <- (S2*z**2)/(delta**2) 
+  return(n0)
+}
+
+```
+
+
+
+```{r}
+N_finita(N, S2, z, 5000)
+N_finita(N, S2, z, 10000)
+```
+
+Como no podemos tomar muestras de números decimales, redondeamos al siguiente número. nuestro tamaño de muestra para un error absoluto de 10,000 dolares es de 208. ¿Qué tanto sentido les hace?
+
+```{r}
+N_infinita(S2, z, 5000)
+N_infinita(S2, z, 10000)
+```
+
+
+Muchas veces plantear casos extremos nos ayuda a resolver los problemas o en su defecto, entenderlos mejor. Veamos los 2 siguientes casos
+
+```{r}
+N_finita(N, S2, z, 50)
+N_finita(N, S2, z, 180000)
+```
+
+**preguntas**
+* ¿Qué pasa si cambio ese 50 por 1? ¿Nuestra formula arrojará error? ¿Si fuera el caso que opciones se pueden plantear?
+* ¿Qué nos dice esto? ¿Por qué en el segundo casi sólo necesitamos una muestra de 1?
+
+
+
+
+¿Cómo varia si queremos un intervalo del 90% con las condiciones previas? ¿el tamaño de muestra disminuye o aumenta?
+
+```{r}
+alpha <- 0.10
+z <- qnorm(1 -alpha/2)
+
+N_infinita(S2, z, 5000)
+N_infinita(S2, z, 10000)
+```
+
+
+**Ejercicio**. Transformar la variable a millones de pesos y calcular un tamaño de muestra para un interlavo de confianza del 95%. ¿Qué precisión usarían?
+
+
+
+## Efecto de la precisión en el tamaño de muestra
+
+```{r}
+vector_precision <- seq(from = 0, to = 100000, by = 1000)
+vector_n <- vector(length = length(vector_precision))
+  
+alpha <- 0.05
+z <- qnorm(1 -alpha/2)
+N <- dim(tabla_precios)[1]  
+
+for (i in 1:length(vector_precision)) {
+  
+  vector_n[i] <- N_finita(N, S2, z,vector_precision[i] )
+  
+}
+ 
+tabla_precisiones <- data.frame(n = vector_n, precision = vector_precision)
+head(tabla_precisiones)
+
+```
+
+
+```{r}
+ggplot(data = tabla_precisiones) +
+  geom_point(mapping = aes(x = precision, y = n))
+```
+
+
+
+En la práctica, la pregunta que deberemos responder es **¿cuál es el tamaño de muestra?**. Posiblemente también determinar los elementos del marco muestral que deberan ser seeccionados.
+
+
+**Importante**. Se deben almacenar los insumos con los que se trabaja un análisis. En resumen, si obtienen una muestra y con esa muestra reportan resultados, no pierdan esa muestra.
+
+**Ejercicio**. Calcular 100 muestras para un intervalo de confianza del 90%, con una precision de 10000 dólares.
+
+
+
+
+
+
+
+
