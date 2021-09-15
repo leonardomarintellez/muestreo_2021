@@ -1,0 +1,79 @@
+---
+title: "04 Totales y Proporciones"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+
+
+## Estimadores, Intervalos de Confianza y Tamaños de Muestra para Totales y Proporciones. 
+
+### Totales
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_1.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_2.png)
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_3.png)
+### Proporciones
+
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_4.png)
+
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_5.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_6.png)
+
+
+Notar que el tamaño de muestra para una proporción no depende de $N$.
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+```
+
+
+
+```{r}
+library(ggplot2)
+```
+
+**Distintos valores de P**
+
+En la práctica se utiliza P tal que maximice el valor de la varianza para tener el mayor tamaño de muestra posible.
+
+```{r}
+vector_p <- seq(from = 0, to = 1, by = 0.01)
+varianza_p <- vector(length = length(vector_p))
+
+
+for (i in 1:length(vector_p)) {
+  
+  varianza_p[i] <- (vector_p[i])*(1- vector_p[i])
+  
+}
+ 
+tabla_p <- data.frame(p = vector_p, v = varianza_p)
+head(tabla_p)
+
+```
+
+
+```{r}
+ggplot(data = tabla_p) +
+  geom_point(mapping = aes(x = p, y = v))
+```
+
+**Tamaño de muestra para proporciones dependiendo de la precisión deseada**
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_7.png)
+
+

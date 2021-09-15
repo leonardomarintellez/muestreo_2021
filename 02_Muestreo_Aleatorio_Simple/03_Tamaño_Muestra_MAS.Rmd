@@ -1,5 +1,5 @@
 ---
-title: "02 Tamaño de Muestra MAS"
+title: "03 Tamaño de Muestra MAS"
 author: "FES Acatlán"
 date: "septiembre de 2021"
 output: html_document
