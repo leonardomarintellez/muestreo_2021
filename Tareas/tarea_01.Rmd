@@ -1,0 +1,110 @@
+---
+title: "Tarea_01"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+**Fecha de entrega**
+
+Fecha límite de entrega: domingo 26 de septiembre de 2021 a las 11:59 pm.
+Enviar solución al mail: leonardo.marintellez@gmail.com
+
+---
+
+### Tarea
+
+Utilizaremos los datos de la Encuesta ENIGH 2018. 
+
+La Encuesta Nacional de Ingresos y Gastos de los Hogares 2018 se llevó a cabo del 21 de agosto al 28 de noviembre de 2018. Su objetivo es proporcionar un panorama estadístico del comportamiento de los **ingresos y gastos de los hogares** en cuanto a su monto, procedencia y distribución; adicionalmente, ofrece información sobre las características ocupacionales y sociodemográficas de los integrantes del hogar, así como las características de la infraestructura de la vivienda y el equipamiento del hogar.
+
+Los datos utilizados pueden ser encontardos en la liga del repositorio o en la siguiente página en la cual encontrarán mucho más detalle de los mismos. 
+
+[ENIGH 2018](https://www.inegi.org.mx/programas/enigh/nc/2018/#Microdatos).
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+library(stringr)
+```
+
+Leer los datos
+```{r}
+enigh_2018 <- read_csv("~/Documentos/Acatlan/datos/ENIGH_2018/conjunto_de_datos_concentradohogar_enigh_2018_ns.csv", col_types = cols(folioviv = col_character(), ubica_geo = col_character() ))
+```
+
+Sólo conservar ciertas variables ya que no ocuparemos todas. Adicionalmente crearemos una variable para identificar la entidad federativa. Usualmente el INEGI usa una variable tipo carácter de longitud 5 para identificar estado y municipio, los primeros 2 dígitos son la entidad y los últimos 3 son el municipio. 
+
+Descripción de las variables: 
+
+* folioviv: Identificador de la vivienda.
+* foliohog: Código que identifica el hogar.
+* ubica_geo: Contiene la ubicación geográfica de la vivienda. Los primeros 2 dígitos representan la clave de la entidad y los siguientes 3 la clave del municipio.
+* ing_cor: Ingreso (corriente) trimestral del hogar.
+* gasto_mon: Gasto (corriente monetario) trimestral del hogar.
+
+```{r}
+datos <- enigh_2018 %>% select(folioviv,foliohog, ubica_geo, est_dis, upm, factor, ing_cor, gasto_mon) %>% 
+        mutate(edo_mun = str_pad(ubica_geo,width = 5,side = "left",pad = "0"),
+               cve_edo = substr(edo_mun,1,2))
+
+glimpse(datos)
+```
+
+
+### Ejercicios
+
+0. Identifica que no haya duplicados.
+
+1. Estima el ingreso promedio trimestral de los hogares. Reporta los siguientes 3 datos : Estimación, Error Estándar, Coeficiente de variación. Reflexiona lo siguiente: ¿esperaban ese dato de la estimación?.
+
+
+2. Estima el gasto promedio trimestral de los hogares. Reporta los siguientes 3 datos : Estimación, Error Estándar, Coeficiente de variación.
+
+
+El **coeficiente de variación** para una muestra se define de la siguiente manera 
+
+$$cv(\hat{\theta})= \frac{(\hat{V}(\hat{\theta}))^\frac{1}{2}}{\hat{\theta}}$$
+
+
+Es una medida que nos permite medir la variabilidad independientemente de la escala de las variables. 
+
+
+3. Hacer estimaciones de por Estado. ¿Cuáles son los 3 estados con ingreso más alto?. ¿Cuáles son los 3 estados con ingreso más bajo?. Si tuvieras que elegir una estimación para el ingreso promedio trimestral por hogar del estado de Chiapas  ¿cual elegirías, tu estimación obtenida para ese estado en esta pregunta o la estimación de la pregunta 1?. Explica brevemente tu elección.
+
+Las siguientes líneas le agregan el descriptivo a los códigos de los estados.
+
+```{r}
+cve_edo <-  str_pad(1:32, width = 2,side = "left",pad = "0") 
+desc_edo <- c("Aguascalientes", "Baja California", "Baja California Sur",
+"Campeche", "Coahuila de Zaragoza", "Colima", "Chiapas", "Chihuahua", "Ciudad de México",
+"Durango", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco", "Estado de México", "Michoacán de Ocampo",
+"Morelos", "Nayarit", "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa",
+"Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz de Ignacio de la Llave", "Yucatán", "Zacatecas")  
+
+catalogo_estados <- data_frame(cve_edo = cve_edo,desc_edo = desc_edo)
+head(catalogo_estados)
+  
+```
+
+```{r}
+datos_con_estados <- left_join(datos,catalogo_estados, by = c("cve_edo"))
+glimpse(datos_con_estados)
+```
+
+
+4. **(opcional)**. Utiliza las estimaciones de la pregunta 3 para hacer una grafica de barras horizontales. Grafica los datos en orden descendente. 
+
+5. **(opcional)**. (Ingreso vs Gasto) Hacer una grafica de dispersión  del ingreso vs gasto por hogar para los hogares que tienen ingreso menor a la estimación obtenida en la primera pregunta.
+
+6. **(opcional)**. Graficar los histogramas del ingreso y gasto en la misma grafica. Fijar el eje x de cero a 250 mil.
+
