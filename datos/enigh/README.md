@@ -2,6 +2,13 @@
 
 ### Encuesta Nacional de Ingresos y Gastos de los Hogares (ENIGH). 2018
 
+Los datos que utilizaremos se encuentran en el siguiente vínculo
+
+https://drive.google.com/drive/folders/1xmYQIfXkAAvISX6gBWCLi6VJd3l2iW-4?usp=sharing
+
+
+Para mayor detalle sobre los datos visitar:
+
 [ENIGH](https://www.inegi.org.mx/programas/enigh/nc/2018/#Microdatos)
 
 
