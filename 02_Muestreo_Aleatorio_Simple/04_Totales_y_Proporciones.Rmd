@@ -7,15 +7,298 @@ output: html_document
 
 
 
-## Estimadores, Intervalos de Confianza y Tamaños de Muestra para Totales y Proporciones. 
+# Estimadores, Intervalos de Confianza y Tamaños de Muestra para Totales y Proporciones. 
 
-### Totales
+## Totales
 
 ![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_1.png)
 
 ![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_2.png)
 ![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_3.png)
-### Proporciones
+
+Usaremos datos del Censo 2010. [Censo 2010](https://www.inegi.org.mx/programas/ccpv/2010/#Microdatos).
+
+
+**Descripción de los datos**
+
+Para el levantamiento de la muestra censal 2010 se diseñó un cuestionario ampliado, con el que fueron censadas alrededor de 2.9 millones de viviendas en el país, seleccionadas con criterios probabilísticos.
+
+Consta de 2 cuestionarios: básico y ampliado. 
+
+**Objetivos**. Por medio de la muestra censal se estiman tasas, promedios y proporciones.
+
+**Diseño**. El diseño de la muestra censal 2010 es estratificado por conglomerados y se realizó en una sola etapa de selección, es decir, se seleccionan áreas geográficas completas, ya sean manzanas o localidades. Dentro de estas áreas se aplica el cuestionario ampliado a todas las viviendas particulares habitadas
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+library(stringr)
+
+library(haven)
+```
+
+
+Leer datos de viviendas
+
+```{r}
+viviendas_15a <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_15_sas/viviendas_15a.sas7bdat", NULL)
+glimpse(viviendas_15a)
+```
+
+¿Cuántos municipios hay en el Estado de México?
+
+```{r}
+viviendas_15a %>% summarise(num_mun = n_distinct(MUN))
+```
+
+Si nuestros datos tuvieran información de más de 1 estado, ¿podríamos hacer ejecutar la línea de código anterior para saber el número de municipios?
+
+```{r}
+viviendas_15a %>% mutate(LLAVE = paste(ENT,MUN,sep = "_")) %>% summarise(num_mun = n_distinct(LLAVE))
+```
+
+Número de viviendas en la muestra
+
+```{r}
+viviendas_15a %>% summarise( registros = n())
+```
+
+Número de registros de viviendas por municipio
+```{r}
+# ¿Por qué incluir la variable ENT en el group by?. Es una buena práctica para no perder el identificador
+viviendas_15a %>% group_by(ENT, NOM_ENT, MUN, NOM_MUN) %>%  summarise( registros = n())
+```
+
+
+
+**Estimación del total de Viviendas en el Estado de México**
+
+¿Cómo estimamos el total de viviendas a partir de la muestra que nos proporcionaron?
+Hasta ahora no conocemos el tamaño de la población $N$. 
+
+
+```{r}
+viviendas_15a %>% summarise(num_viviendas = sum(FACTOR))
+```
+
+
+La información contiene la variable de número de personas por Viviendas. Con cifras del Censo de 2010, ¿cuántas personas vivían en el Estado de México?.
+
+```{r}
+viviendas_15a %>% mutate(num_personas = parse_number(NUMPERS)) %>% 
+  summarise( num_personas = sum(FACTOR*num_personas))
+```
+
+Estimación del número de viviendas y personas por municipio
+
+```{r}
+tabla_viviendas <- viviendas_15a %>% 
+  mutate(num_personas = parse_number(NUMPERS)) %>% 
+  group_by(ENT, NOM_ENT, MUN, NOM_MUN) %>%  
+  summarise( num_viviendas = sum(FACTOR), num_personas = sum(FACTOR*num_personas)) %>% 
+  ungroup()
+
+tabla_viviendas
+```
+
+
+Revisar algún minucipio de interés. Municiío donde está la FES Acatlán.
+
+```{r}
+tabla_viviendas %>% filter(MUN %in% c("013","057"))
+```
+
+
+**Presentar estimaciones de forma gráfica**
+
+Utilizaremos los datos de vivienda de la **cdmx**
+
+
+```{r}
+viviendas_09a <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_09_sas/viviendas_09.sas7bdat", NULL)
+glimpse(viviendas_09a)
+```
+
+Estimación de Viviendas y Personas
+
+```{r}
+viviendas_09a %>% 
+  mutate(num_personas = parse_number(NUMPERS)) %>% 
+           summarise(num_viviendas = sum(FACTOR), num_personas = sum(FACTOR*num_personas))
+```
+
+¿Por qué no es la misma estimación reportada en la página del INEGI?
+
+Veamos los tipos de Vivienda. revisar los distintos tipos de categoría. Consultar catálogo para saber el descriptivo de las categorías
+
+```{r}
+viviendas_09a %>% group_by(CLAVIVP) %>% summarise(conteo = n(), factor = sum(FACTOR))
+```
+
+Estimación de Viviendas y Personas (considerando las reglas de negocio)
+
+```{r}
+viviendas_09a %>% 
+  filter(CLAVIVP %in% c("1","2","3","4","9")) %>% 
+  mutate(num_personas = parse_number(NUMPERS)) %>% 
+           summarise(num_viviendas = sum(FACTOR), num_personas = sum(FACTOR*num_personas))
+```
+
+
+```{r}
+viviendas_x_municipio <- viviendas_09a %>% 
+  filter(CLAVIVP %in% c("1","2","3","4","9")) %>% 
+  mutate(num_personas = parse_number(NUMPERS), unos = 1) %>% 
+  group_by(ENT, NOM_ENT, MUN, NOM_MUN) %>%  
+  summarise( registros = n(), num_viviendas = sum(FACTOR), num_personas = sum(FACTOR*num_personas)) %>% 
+  ungroup()
+
+viviendas_x_municipio
+```
+
+Grafica de barras
+```{r}
+ggplot(data = viviendas_x_municipio) +
+geom_col(mapping = aes(x = reorder(NOM_MUN,num_personas, desc = TRUE), y = num_personas)) +
+coord_flip()
+```
+
+Misma gráfica para ver el impacto de los factores de expansión
+
+```{r}
+ggplot(data = viviendas_x_municipio) +
+geom_col(mapping = aes(x = reorder(NOM_MUN,registros, desc = TRUE), y = registros)) +
+coord_flip()
+```
+
+
+---
+
+Uno de los recursos que pone el INEGI a la disposición de los usuarios son archivos con coordenadas de polígonos. Estos archivos permiten graficar mapas. Iniciaremos con municipios, se puede ver mayor nivel de desglose, entre ellos los llamados AGEB (área geoestadística básica). 
+
+```{r}
+#Cargar librería para graficar mapas
+library(sf)
+```
+
+
+```{r}
+# Leer el dataframe de shapes
+shapes <- st_read("~/Documentos/Acatlan/datos/shapes/01_32_mun.shp")
+glimpse(shapes)
+```
+
+Unir la info con los shapefiles. Es importante tener colapsada la información a  nivel estado municipio para no duplicar información.
+
+```{r}
+viviendas_shapes <- shapes %>%   
+                    left_join((viviendas_x_municipio %>% mutate(llave = paste(ENT,MUN,sep = ""))), by = c("CVEGEO"="llave"))
+
+glimpse(viviendas_shapes)
+```
+
+
+**Ejercicio**. Revisar el porcentaje de registros que hacen match. ¿Por qué esto es importante?
+
+**Pregunta**. ¿Qué pasa si hubieramos hecho la union de tablas utilizando como tabla izquierda la tabla de viviendas por municipio?
+
+```{r}
+datos_grafica <- viviendas_shapes  %>% 
+                filter(CVE_ENT == '09') %>% 
+                mutate(nombre_etiqueta = ifelse(num_personas < 500000,NOM_MUN,""))
+```
+
+
+```{r}
+datos_grafica %>%
+  ggplot(aes(fill = num_personas)) +
+  geom_sf(colour = "grey75", size = 0.35) +
+  labs(title = "Concentracion personas por municipio",
+       subtitle = "CDMX",
+       caption = "Fuente: Censo 2010") +
+  scale_fill_gradient("Concentración", high = "red", low = "white") +
+  theme_bw() +
+  geom_sf_text(aes(label = nombre_etiqueta))
+
+```
+
+**Ejercicio**. Replicar para Edo Mex y pintar la etiqueta solamente para los top 3 estados con mayor número de personas
+
+
+### Intervalos de Confianza (Totales)
+
+Construiremos un Intervalo de Confianza para el Total de Viviendas de la CMDX bajo Muestreo Aleatorio Simple.
+
+¿Qué pasos debemos seguir?, ¿Qué valores debemos calcular?
+
+```{r}
+viviendas_09a %>% 
+  filter(CLAVIVP %in% c("1","2","3","4","9")) %>% 
+  mutate(num_personas = parse_number(NUMPERS)) %>% 
+  summarise(n = n(),
+    num_viviendas = sum(FACTOR), var_viv = var(FACTOR), promedio = mean(FACTOR))
+
+```
+
+Asignar valores a variables (Notar que esto se puede automatizar)
+```{r}
+N <- 2440641
+n <- 97749
+var <- 1837.469
+```
+
+La varianza estimada está dada por
+```{r}
+var_est <- (n**2) * (var/n) * (1 - n/N)
+## ee: error estándar
+ee <- sqrt(var_est)
+ee
+```
+
+**importante**. Reflexionar por qué la $n$ al cuadrado es sobre la muestra en la formula para estimar la varianza y no sobre $N$.
+
+Definir la confianza
+```{r}
+alpha <- 0.10
+z <- qnorm(1-alpha/2)
+z
+```
+
+Los límites del intervalo son
+```{r}
+limite_inferior <- 2440641 - z*ee
+limite_superior <- 2440641 + z*ee
+c(limite_inferior,limite_superior)
+```
+
+
+Veremos otro ejemplo usando las **tablas de Personas**
+
+```{r}
+personas_09a <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_09_sas/personas_09.sas7bdat", NULL)
+glimpse(personas_09a)
+```
+
+
+Estimación del número de Personas 
+
+```{r}
+personas_09a %>% summarise(n = n(), num_personas = sum(FACTOR))
+```
+
+
+
+
+## Proporciones
 
 
 ![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_4.png)
@@ -28,24 +311,7 @@ output: html_document
 
 Notar que el tamaño de muestra para una proporción no depende de $N$.
 
-
-```{r}
-# Limpiar área de trabajo
-rm(list = ls())
-```
-
-
-```{r}
-# Cargar librerías
-suppressMessages(library(tidyverse))
-```
-
-
-
-```{r}
-library(ggplot2)
-```
-
+  
 **Distintos valores de P**
 
 En la práctica se utiliza P tal que maximice el valor de la varianza para tener el mayor tamaño de muestra posible.
@@ -76,4 +342,65 @@ ggplot(data = tabla_p) +
 
 ![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mas_04_7.png)
 
+ Hagamos un ejemplo Viviendas propias. ¿Qué porcentaje de las viviendas propias tiene la categoría `compra` como forma de adquisción?
+ 
+```{r}
+datos_interes <- viviendas_09a %>% 
+  filter(CLAVIVP %in% c("1","2","3","4","9")) %>% 
+  filter(TENVIV == "1") %>% 
+  # Crear variable indicadora 
+  mutate(indicadora = ifelse(FADQUI == "1",1,0))
+```
+ 
+Nuestro universo es
+```{r}
+datos_interes %>% summarise(n = n(), num_viviendas = sum(FACTOR))
+```
 
+Estos datos coinciden con los tabulados publicados.
+
+
+La estimación es:
+
+```{r}
+datos_interes %>% summarise(n = n(), p = mean(indicadora), suma = sum(FACTOR))
+```
+
+¿Por qué la estimación de los totales sí nos coincide con los tabulados ublicados y la estimación de la proporción no?
+¿Qué estamos haciendo mal, o qué no estamos considerado?
+
+
+### Intervalos de Confianza (proporciones)
+
+Construiremos un Intervalo de Confianza para la proporción de la categoría compra.
+
+Asignar valores a variables (Notar que esto se puede automatizar)
+```{r}
+N <- 1628389
+n <- 64827
+```
+
+La varianza estimada está dada por
+```{r}
+p <- 0.4611196
+var_est <-  ((p*(1-p))/(n-1))*(1 - n/N)
+## ee: error estándar
+ee <- sqrt(var_est)
+ee
+```
+
+Definir la confianza
+```{r}
+alpha <- 0.10
+z <- qnorm(1-alpha/2)
+z
+```
+
+Los límites del intervalo son
+```{r}
+limite_inferior <- p - z*ee
+limite_superior <- p + z*ee
+c(limite_inferior,limite_superior)
+```
+
+¿Qué deficiencias identifican al crear este tipo de intervalos para proporciones?
