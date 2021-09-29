@@ -955,6 +955,297 @@ c(limite_inferior,limite_superior)</code></pre>
 <p>¿Qué deficiencias identifican al crear este tipo de intervalos para proporciones?</p>
 </div>
 </div>
+<div id="ejemplos-de-tamaño-de-muestra" class="section level2">
+<h2>Ejemplos de Tamaño de muestra</h2>
+<p>A diferencia de los ejemplos anteriores donde tenemos los datos de la muestra y podemos estimar un valor de <span class="math inline">\(S^{2}\)</span>. Para calcular el tamaño de muestra para un nivel de confianza y precisión fijos, necesitamos conocer el valor de <span class="math inline">\(S^{2}\)</span>.</p>
+<ul>
+<li><p>Muestra piloto. Realizar una pequeña muestra con n=50 o n=100 para tener una idea de <span class="math inline">\(S^{2}\)</span>.</p></li>
+<li><p>Uso de una distribución hipotética. Dependiendo de nuestro objeto de estudio, en algunos casos se puede asumir cierta distribución sobre nuestra variable de interés, por ejemplo, para una variable normal, el ~95% de los datos están a una distancia de de 2 desviaciones estándar de la media; así, se puede considerar un valor de <span class="math inline">\(S = \frac{rango}{4}\)</span></p></li>
+</ul>
+<p>¿Qué falla le encuentran a la recomendación anterior?. Recordemos que estamos en una situación que tenemos nuestro marco muestral, pero no datos.</p>
+<ul>
+<li>Estudios anteriores o datos disponibles en referencias.Este caso será el más usual en la práctica.</li>
+</ul>
+<p><strong>Ejemplo</strong></p>
+<p>De manera ilustrativa, usaremos los datos de uso de <a href="https://www.ecobici.cdmx.gob.mx/es/informacion-del-servicio/open-data">ecobici</a> del mes de agosto de 2021.</p>
+<pre class="r"><code># Limpiar área de trabajo
+rm(list = ls())</code></pre>
+<pre class="r"><code># Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+
+library(readr)
+library(stringr)
+library(lubridate)</code></pre>
+<pre><code>## 
+## Attaching package: 'lubridate'</code></pre>
+<pre><code>## The following object is masked from 'package:base':
+## 
+##     date</code></pre>
+<pre class="r"><code>ecobici &lt;- read_csv(&quot;~/Documentos/Acatlan/datos/ecobici/datos_abiertos_ecobici_202108.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   Genero_Usuario = col_character(),
+##   Edad_Usuario = col_double(),
+##   Bici = col_double(),
+##   Ciclo_Estacion_Retiro = col_double(),
+##   Fecha_Retiro = col_character(),
+##   Hora_Retiro = col_time(format = &quot;&quot;),
+##   Ciclo_EstacionArribo = col_double(),
+##   `Fecha Arribo` = col_character(),
+##   Hora_Arribo = col_time(format = &quot;&quot;)
+## )</code></pre>
+<pre class="r"><code>glimpse(ecobici)</code></pre>
+<pre><code>## Rows: 354,267
+## Columns: 9
+## $ Genero_Usuario        &lt;chr&gt; &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;F&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M…
+## $ Edad_Usuario          &lt;dbl&gt; 28, 33, 19, 32, 36, 34, 35, 35, 31, 37, 22…
+## $ Bici                  &lt;dbl&gt; 11302, 10571, 12451, 8314, 7993, 10675, 39…
+## $ Ciclo_Estacion_Retiro &lt;dbl&gt; 73, 121, 132, 7, 7, 136, 465, 237, 237, 36…
+## $ Fecha_Retiro          &lt;chr&gt; &quot;31/07/2021&quot;, &quot;31/07/2021&quot;, &quot;31/07/2021&quot;, …
+## $ Hora_Retiro           &lt;time&gt; 23:57:44, 23:54:00, 23:52:58, 23:23:41, 2…
+## $ Ciclo_EstacionArribo  &lt;dbl&gt; 62, 143, 122, 7, 7, 68, 461, 24, 24, 366, …
+## $ `Fecha Arribo`        &lt;chr&gt; &quot;01/08/2021&quot;, &quot;01/08/2021&quot;, &quot;01/08/2021&quot;, …
+## $ Hora_Arribo           &lt;time&gt; 00:00:08, 00:00:59, 00:01:24, 00:01:25, 0…</code></pre>
+<p>Queremos saber el tiempo promedio de los viajes en ecobici</p>
+<p>Hacemos labor de campo y entrevistamos a x personas en las cicloestaciones cuando dejan su bici y preguntamos cuanto duró su viaje.</p>
+<p>Primero. ¿Qué sesgos puede haber si sólo entrevisto a una zona?.</p>
+<p>Segundo. ¿A cuántas personas debo entrevistar para tener un intervalo de confianza del 95%?.</p>
+<p>Crear variable del tiempo de uso</p>
+<pre class="r"><code>tiempos_ecobici &lt;- ecobici %&gt;% 
+          rename(Fecha_Arribo = `Fecha Arribo`) %&gt;%
+          mutate(Fecha_Retiro = gsub(&quot;/&quot;,&quot;-&quot;,Fecha_Retiro),
+                 Fecha_Arribo = gsub(&quot;/&quot;,&quot;-&quot;,Fecha_Arribo),
+                tiempo_inicio = dmy_hms(paste(Fecha_Retiro,Hora_Retiro, sep = &quot; &quot;)),
+                tiempo_fin = dmy_hms(paste(Fecha_Arribo,Hora_Arribo, sep = &quot; &quot;)),
+                duracion_viaje = tiempo_fin - tiempo_inicio) %&gt;% 
+                # Filtrar casos donde la bici no se devuelve en ese día
+                filter(duracion_viaje &lt; (60*24)) %&gt;% 
+                filter(duracion_viaje &lt; 90)
+
+glimpse(tiempos_ecobici)</code></pre>
+<pre><code>## Rows: 351,545
+## Columns: 12
+## $ Genero_Usuario        &lt;chr&gt; &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;F&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M…
+## $ Edad_Usuario          &lt;dbl&gt; 28, 33, 19, 32, 36, 34, 35, 35, 31, 37, 22…
+## $ Bici                  &lt;dbl&gt; 11302, 10571, 12451, 8314, 7993, 10675, 39…
+## $ Ciclo_Estacion_Retiro &lt;dbl&gt; 73, 121, 132, 7, 7, 136, 465, 237, 237, 36…
+## $ Fecha_Retiro          &lt;chr&gt; &quot;31-07-2021&quot;, &quot;31-07-2021&quot;, &quot;31-07-2021&quot;, …
+## $ Hora_Retiro           &lt;time&gt; 23:57:44, 23:54:00, 23:52:58, 23:23:41, 2…
+## $ Ciclo_EstacionArribo  &lt;dbl&gt; 62, 143, 122, 7, 7, 68, 461, 24, 24, 366, …
+## $ Fecha_Arribo          &lt;chr&gt; &quot;01-08-2021&quot;, &quot;01-08-2021&quot;, &quot;01-08-2021&quot;, …
+## $ Hora_Arribo           &lt;time&gt; 00:00:08, 00:00:59, 00:01:24, 00:01:25, 0…
+## $ tiempo_inicio         &lt;dttm&gt; 2021-07-31 23:57:44, 2021-07-31 23:54:00,…
+## $ tiempo_fin            &lt;dttm&gt; 2021-08-01 00:00:08, 2021-08-01 00:00:59,…
+## $ duracion_viaje        &lt;drtn&gt; 2.400000 mins, 6.983333 mins, 8.433333 mi…</code></pre>
+<p><em>Con tu tarjeta ECOBICI, toma una bici de cualquier CE y déjala en la más cercana a tu destino. Podrás utilizarla en trayectos ilimitados de 45 minutos cada uno durante el periodo contratado. El horario de servicio es de 05:00 a 00:30 horas de lunes a domingo.</em></p>
+<p>Los valores reales de nuestra población son</p>
+<pre class="r"><code>tiempos_ecobici %&gt;% summarise(suma = sum(duracion_viaje), promedio = mean(duracion_viaje), sd = sd(duracion_viaje), min = min(duracion_viaje), max = max(duracion_viaje))</code></pre>
+<pre><code>## # A tibble: 1 x 5
+##   suma         promedio         sd min    max          
+##   &lt;drtn&gt;       &lt;drtn&gt;        &lt;dbl&gt; &lt;drtn&gt; &lt;drtn&gt;       
+## 1 5540835 mins 15.76138 mins  12.4 2 mins 89.98333 mins</code></pre>
+<pre class="r"><code>ggplot(tiempos_ecobici) +
+  geom_histogram(mapping = aes(x = duracion_viaje))</code></pre>
+<pre><code>## Don't know how to automatically pick scale for object of type difftime. Defaulting to continuous.</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="data:image/png;base64,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" width="672" /></p>
+<p>Sin conocimiento previo, saquemos una muestra y calculemos un intervalo de confianza</p>
+<pre class="r"><code>(N &lt;- dim(tiempos_ecobici)[1])</code></pre>
+<pre><code>## [1] 351545</code></pre>
+<pre class="r"><code>set.seed(12341)
+muestra_1 &lt;- tiempos_ecobici %&gt;% 
+              sample_n(100) %&gt;% 
+              mutate(factor_exp = (N/100)) %&gt;% 
+              select(tiempo_inicio, tiempo_fin, duracion_viaje, factor_exp)
+
+glimpse(muestra_1)</code></pre>
+<pre><code>## Rows: 100
+## Columns: 4
+## $ tiempo_inicio  &lt;dttm&gt; 2021-08-21 17:05:40, 2021-08-10 10:41:27, 2021-0…
+## $ tiempo_fin     &lt;dttm&gt; 2021-08-21 17:48:32, 2021-08-10 11:09:40, 2021-0…
+## $ duracion_viaje &lt;drtn&gt; 42.866667 mins, 28.216667 mins, 3.883333 mins, 7…
+## $ factor_exp     &lt;dbl&gt; 3515.45, 3515.45, 3515.45, 3515.45, 3515.45, 3515…</code></pre>
+<pre class="r"><code>muestra_1 %&gt;% summarise(suma = sum(duracion_viaje), promedio = mean(duracion_viaje), sd = sd(duracion_viaje))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   suma          promedio         sd
+##   &lt;drtn&gt;        &lt;drtn&gt;        &lt;dbl&gt;
+## 1 1701.433 mins 17.01433 mins  13.9</code></pre>
+<p>El intervalo al 95% de confianza está dado por</p>
+<pre class="r"><code>alpha = 0.05
+valor = 1 - (alpha/2)
+z &lt;- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)</code></pre>
+<pre><code>## [1] 1.959964</code></pre>
+<pre class="r"><code># Error Estándar
+ee &lt;- 16.397 / sqrt(100)
+
+limite_inferior &lt;- 17.01433 - z*ee
+limite_superior &lt;- 17.01433 + z*ee
+c(limite_inferior,limite_superior)</code></pre>
+<pre><code>## [1] 13.80058 20.22808</code></pre>
+<p>Ahora calculemos el tamaño de muestra y con ese tamaño de muestra, obtengamos la muestra y su intervalo de confianza</p>
+<pre class="r"><code># Fijar parámetros (no confundir la terminología de parámetros de una función con el contexto de parámetros en muestreo)
+alpha &lt;- 0.05
+z &lt;- qnorm(1 -alpha/2)
+
+delta &lt;- 2 # para nuestro ejemplo de bicis usaremos 2 minutos
+S2 &lt;- 12.41002 **2</code></pre>
+<pre class="r"><code># Función para el tamaño de muestar
+N_finita &lt;- function(N,S2,z,delta){
+  
+  n0 &lt;- (S2*z**2)/(delta**2) 
+  return(n0 / (1 + n0/N))
+}
+
+N_infinita &lt;- function(S2,z,delta){
+  
+  n0 &lt;- (S2*z**2)/(delta**2) 
+  return(n0)
+}</code></pre>
+<p>El tamaño de mestra que obtenemos es</p>
+<pre class="r"><code>n &lt;- N_infinita(S2, z, delta)
+n</code></pre>
+<pre><code>## [1] 147.9044</code></pre>
+<p>Por tanto, para la precisión y confianza fijados obtenemos que la muestra debe ser de al menos 148.</p>
+<p>Si quisieramos ser más estrictos en la precisión con un valor de 1 min, la muestra aumenta a</p>
+<pre class="r"><code>N_infinita(S2, z, 1)</code></pre>
+<pre><code>## [1] 591.6177</code></pre>
+<p><strong>Ejericio</strong> ¿Qué precisión se requiere para que la muestra sea de tamaño n=100?. Alternativa a solución, usar función buscar objetivo en excel.</p>
+<p><strong>Ejercicio</strong> Considera el factor de ajuste por población finita y calcula nuevamente el intervalo de confianza anterior s considerar el factor de ajuste por población finita <span class="math inline">\(1 - \frac{n}{N}\)</span>.</p>
+<p>La muestra con el valor de <span class="math inline">\(n\)</span> obtenido es</p>
+<pre class="r"><code>set.seed(12342)
+muestra_2 &lt;- tiempos_ecobici %&gt;% 
+              sample_n(148) %&gt;% 
+              mutate(factor_exp = (N/148)) %&gt;% 
+              select(tiempo_inicio, tiempo_fin, duracion_viaje, factor_exp)
+
+glimpse(muestra_2)</code></pre>
+<pre><code>## Rows: 148
+## Columns: 4
+## $ tiempo_inicio  &lt;dttm&gt; 2021-08-17 15:34:32, 2021-08-19 21:19:32, 2021-0…
+## $ tiempo_fin     &lt;dttm&gt; 2021-08-17 15:43:30, 2021-08-19 21:28:27, 2021-0…
+## $ duracion_viaje &lt;drtn&gt; 8.966667 mins, 8.916667 mins, 27.316667 mins, 11…
+## $ factor_exp     &lt;dbl&gt; 2375.304, 2375.304, 2375.304, 2375.304, 2375.304,…</code></pre>
+<pre class="r"><code>muestra_2 %&gt;% summarise(suma = sum(duracion_viaje), promedio = mean(duracion_viaje), sd = sd(duracion_viaje))</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   suma          promedio         sd
+##   &lt;drtn&gt;        &lt;drtn&gt;        &lt;dbl&gt;
+## 1 2643.033 mins 17.85833 mins  14.2</code></pre>
+<p>El intervalo al 95% de confianza está dado por</p>
+<pre class="r"><code>alpha = 0.05
+valor = 1 - (alpha/2)
+z &lt;- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)</code></pre>
+<pre><code>## [1] 1.959964</code></pre>
+<pre class="r"><code># Error Estándar
+ee &lt;- 14.21652   / sqrt(148)
+ee</code></pre>
+<pre><code>## [1] 1.168591</code></pre>
+<pre class="r"><code>limite_inferior &lt;- 17.85833 - z*ee
+limite_superior &lt;- 17.85833 + z*ee
+c(limite_inferior,limite_superior)</code></pre>
+<pre><code>## [1] 15.56793 20.14873</code></pre>
+<p>Como podemos ver, aumentar el tamaño de muestra hizo que nuestro intervalo disminuyera su longitud.</p>
+<hr />
+<p>Corroboremos los resultados obtenidos usando una librería de R diseñada para muestreo</p>
+<p>Cargamos librería</p>
+<pre class="r"><code>suppressMessages(library(survey))</code></pre>
+<p>Definir diseño de MAS</p>
+<pre class="r"><code>disenio_mas &lt;-svydesign(id=~1, weights=~1,data=muestra_2)</code></pre>
+<p>Estimación</p>
+<pre class="r"><code>promedio &lt;-  svymean(~duracion_viaje,disenio_mas)
+promedio</code></pre>
+<pre><code>##                  mean     SE
+## duracion_viaje 17.858 1.1686</code></pre>
+<p>Coeficiente de variación</p>
+<pre class="r"><code>cv(promedio)</code></pre>
+<pre><code>##                duracion_viaje
+## duracion_viaje     0.06543673</code></pre>
+<p>Intervalos de Confianza</p>
+<pre class="r"><code>confint(promedio,level=0.95)</code></pre>
+<pre><code>##                   2.5 %   97.5 %
+## duracion_viaje 15.56794 20.14873</code></pre>
+<hr />
+<p><strong>Tamaño de muestra para proporciones</strong></p>
+<p>Deseamos hacer una estimación para conocer la propoción de usuarios que son mujeres, con un intervalo de confianza del 95% y una precisión de 5 puntos porcentuales.</p>
+<p><strong>Importante</strong>. Notar que los tamaños de muestra están en función de la precisión deseada (<span class="math inline">\(\delta\)</span>) y la escala de ésta varia conforme al problema.</p>
+<p>Recordemos que la fórmula para el tamaño de muestra de una proporción es</p>
+<p><span class="math display">\[\frac{Z^{2} \cdot P(1-P)}{\delta^{2}}\]</span></p>
+<p>Considerando un intervalo con una confianza de 95, a veces se llega a simplificar la expresión anterior a</p>
+<p><span class="math display">\[\frac{2^{2} \cdot 0.5(1-0.5)}{\delta^{2}} = \frac{1}{\delta^{2}} \]</span></p>
+<p>Se redondea el cuantil <span class="math inline">\(z\)</span> de 1.96 a 2 y se toma <span class="math inline">\(P=0.5\)</span> para maximizar la varianza y considerar el mayor número de muestra para los distintos valores de <span class="math inline">\(P\)</span>.</p>
+<pre class="r"><code>set.seed(12343)
+muestra_p &lt;- tiempos_ecobici %&gt;% 
+              filter(!is.na(Genero_Usuario)) %&gt;% 
+              sample_n(400) %&gt;%  
+              mutate(indicadora = ifelse(Genero_Usuario == &quot;F&quot;,1,0)) %&gt;% 
+              select(tiempo_inicio, tiempo_fin, duracion_viaje, Genero_Usuario, indicadora) 
+
+glimpse(muestra_p)</code></pre>
+<pre><code>## Rows: 400
+## Columns: 5
+## $ tiempo_inicio  &lt;dttm&gt; 2021-08-24 10:56:59, 2021-08-13 17:00:31, 2021-0…
+## $ tiempo_fin     &lt;dttm&gt; 2021-08-24 11:16:56, 2021-08-13 17:08:02, 2021-0…
+## $ duracion_viaje &lt;drtn&gt; 19.950000 mins, 7.516667 mins, 11.400000 mins, 2…
+## $ Genero_Usuario &lt;chr&gt; &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;F&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;, &quot;M&quot;,…
+## $ indicadora     &lt;dbl&gt; 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…</code></pre>
+<pre class="r"><code>muestra_p %&gt;% summarise(p = mean(indicadora, na.rm = TRUE), sd = sd(indicadora, na.rm = TRUE))</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##       p    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1 0.285 0.452</code></pre>
+<p>El intervalo al 95% de confianza está dado por</p>
+<pre class="r"><code>alpha = 0.05
+valor = 1 - (alpha/2)
+z &lt;- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)</code></pre>
+<pre><code>## [1] 1.959964</code></pre>
+<p>Utilizando la fórmula vista arriba tenemos que el error estándar de nuestro estimador es</p>
+<p><span class="math display">\[\hat{V}(\hat{p}) = \frac{\hat{p}(1-\hat{p})}{n-1}\]</span></p>
+<pre class="r"><code># Error Estándar
+p_est &lt;- 0.285
+ee &lt;- sqrt(p_est * (1 - p_est))/ sqrt(400-1)
+ee</code></pre>
+<pre><code>## [1] 0.02259899</code></pre>
+<pre class="r"><code>limite_inferior &lt;- 0.285 - z*ee
+limite_superior &lt;- 0.285 + z*ee
+c(limite_inferior,limite_superior)</code></pre>
+<pre><code>## [1] 0.2407068 0.3292932</code></pre>
+<hr />
+<p>Corroboremos los resultados obtenidos usando una librería de R diseñada para muestreo</p>
+<p>Definir diseño de MAS</p>
+<pre class="r"><code>disenio_mas &lt;-svydesign(id=~1, weights=~1,data=muestra_p)</code></pre>
+<p>Estimación</p>
+<pre class="r"><code>proporcion &lt;-  svymean(~indicadora,disenio_mas)
+proporcion</code></pre>
+<pre><code>##             mean     SE
+## indicadora 0.285 0.0226</code></pre>
+<p>Coeficiente de variación</p>
+<pre class="r"><code>cv(proporcion)</code></pre>
+<pre><code>##            indicadora
+## indicadora  0.0792947</code></pre>
+<p>Intervalos de Confianza</p>
+<pre class="r"><code>confint(proporcion,level=0.95)</code></pre>
+<pre><code>##                2.5 %    97.5 %
+## indicadora 0.2407068 0.3292932</code></pre>
+<hr />
+<p>Sólo para validar, veamos los valores poblacionales</p>
+<pre class="r"><code>tiempos_ecobici %&gt;% 
+              filter(!is.na(Genero_Usuario)) %&gt;% 
+              mutate(indicadora = ifelse(Genero_Usuario == &quot;F&quot;,1,0)) %&gt;% 
+              summarise( p = mean(indicadora), sd = sd(indicadora))</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##       p    sd
+##   &lt;dbl&gt; &lt;dbl&gt;
+## 1 0.271 0.444</code></pre>
+<p>Para la muestra elegida, el intervalo sí cntiene el parámetro poblacional.</p>
+<p><strong>preguntas</strong></p>
+<ul>
+<li>¿Qué pasaría si para una proproción fijara una presición <span class="math inline">\(\delta\)</span> de 1?</li>
+<li>piensen un caso donde hacer muestreo aleatorio simple para proporciones pueda dar resultados no esperados en las estimaciones.</li>
+</ul>
+</div>
 </div>
 
 

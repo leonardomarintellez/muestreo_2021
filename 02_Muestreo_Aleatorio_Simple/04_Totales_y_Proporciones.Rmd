@@ -404,3 +404,387 @@ c(limite_inferior,limite_superior)
 ```
 
 ¿Qué deficiencias identifican al crear este tipo de intervalos para proporciones?
+
+
+## Ejemplos de Tamaño de muestra
+
+A diferencia de los ejemplos anteriores donde tenemos los datos de la muestra y podemos estimar un valor de $S^{2}$. Para calcular el tamaño de muestra para un nivel de confianza y precisión fijos, necesitamos conocer el valor de $S^{2}$.
+
+* Muestra piloto. Realizar una pequeña muestra con n=50 o n=100 para tener una idea de  $S^{2}$.
+
+* Uso de una distribución hipotética. Dependiendo de nuestro objeto de estudio, en algunos casos se puede asumir cierta distribución sobre nuestra variable de interés, por ejemplo, para una variable normal, el ~95% de los datos están a una distancia de de 2 desviaciones estándar de la media; así, se puede considerar un valor de $S = \frac{rango}{4}$
+
+¿Qué falla le encuentran a la recomendación anterior?. Recordemos que estamos en una situación que tenemos nuestro marco muestral, pero no datos.
+
+* Estudios anteriores o datos disponibles en referencias.Este caso será el más usual en la práctica.
+
+
+**Ejemplo**
+
+De manera ilustrativa, usaremos los datos de uso de [ecobici](https://www.ecobici.cdmx.gob.mx/es/informacion-del-servicio/open-data) del mes de agosto de 2021.
+
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+
+library(readr)
+library(stringr)
+library(lubridate)
+```
+
+
+```{r}
+ecobici <- read_csv("~/Documentos/Acatlan/datos/ecobici/datos_abiertos_ecobici_202108.csv")
+glimpse(ecobici)
+```
+
+Queremos saber el tiempo promedio de los viajes en ecobici
+
+Hacemos labor de campo y entrevistamos a x personas en las cicloestaciones cuando dejan su bici y preguntamos cuanto duró su viaje.
+
+Primero. ¿Qué sesgos puede haber si sólo entrevisto a una zona?.
+
+Segundo. ¿A cuántas personas debo entrevistar para tener un intervalo de confianza del 95%?.
+
+
+
+Crear variable del tiempo de uso
+```{r}
+tiempos_ecobici <- ecobici %>% 
+          rename(Fecha_Arribo = `Fecha Arribo`) %>%
+          mutate(Fecha_Retiro = gsub("/","-",Fecha_Retiro),
+                 Fecha_Arribo = gsub("/","-",Fecha_Arribo),
+                tiempo_inicio = dmy_hms(paste(Fecha_Retiro,Hora_Retiro, sep = " ")),
+                tiempo_fin = dmy_hms(paste(Fecha_Arribo,Hora_Arribo, sep = " ")),
+                duracion_viaje = tiempo_fin - tiempo_inicio) %>% 
+                # Filtrar casos donde la bici no se devuelve en ese día
+                filter(duracion_viaje < (60*24)) %>% 
+                filter(duracion_viaje < 90)
+
+glimpse(tiempos_ecobici)
+```
+
+_Con tu tarjeta ECOBICI, toma una bici de cualquier CE y déjala en la más cercana a tu destino. Podrás utilizarla en trayectos ilimitados de 45 minutos cada uno durante el periodo contratado. El horario de servicio es de 05:00 a 00:30 horas de lunes a domingo._
+
+Los valores reales de nuestra población son 
+
+```{r}
+tiempos_ecobici %>% summarise(suma = sum(duracion_viaje), promedio = mean(duracion_viaje), sd = sd(duracion_viaje), min = min(duracion_viaje), max = max(duracion_viaje))
+```
+
+
+```{r}
+ggplot(tiempos_ecobici) +
+  geom_histogram(mapping = aes(x = duracion_viaje))
+```
+
+
+Sin conocimiento previo, saquemos una muestra y calculemos un intervalo de confianza
+
+```{r}
+(N <- dim(tiempos_ecobici)[1])
+```
+
+
+```{r}
+set.seed(12341)
+muestra_1 <- tiempos_ecobici %>% 
+              sample_n(100) %>% 
+              mutate(factor_exp = (N/100)) %>% 
+              select(tiempo_inicio, tiempo_fin, duracion_viaje, factor_exp)
+
+glimpse(muestra_1)
+```
+
+```{r}
+muestra_1 %>% summarise(suma = sum(duracion_viaje), promedio = mean(duracion_viaje), sd = sd(duracion_viaje))
+```
+
+El intervalo al 95% de confianza  está dado por
+
+```{r}
+alpha = 0.05
+valor = 1 - (alpha/2)
+z <- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)
+```
+
+
+```{r}
+# Error Estándar
+ee <- 16.397 / sqrt(100)
+
+limite_inferior <- 17.01433 - z*ee
+limite_superior <- 17.01433 + z*ee
+c(limite_inferior,limite_superior)
+
+```
+
+
+Ahora calculemos el tamaño de muestra y con ese tamaño de muestra, obtengamos la muestra y su intervalo de confianza
+
+
+```{r}
+# Fijar parámetros (no confundir la terminología de parámetros de una función con el contexto de parámetros en muestreo)
+alpha <- 0.05
+z <- qnorm(1 -alpha/2)
+
+delta <- 2 # para nuestro ejemplo de bicis usaremos 2 minutos
+S2 <- 12.41002 **2
+
+```
+
+```{r}
+# Función para el tamaño de muestar
+N_finita <- function(N,S2,z,delta){
+  
+  n0 <- (S2*z**2)/(delta**2) 
+  return(n0 / (1 + n0/N))
+}
+
+N_infinita <- function(S2,z,delta){
+  
+  n0 <- (S2*z**2)/(delta**2) 
+  return(n0)
+}
+
+```
+
+
+
+El tamaño de mestra que obtenemos es
+
+```{r}
+n <- N_infinita(S2, z, delta)
+n
+```
+
+Por tanto, para la precisión y confianza fijados obtenemos que la muestra debe ser de al menos `r floor(n+1)`.  
+
+
+Si quisieramos ser más estrictos en la precisión con un valor de 1 min, la muestra aumenta a 
+
+```{r}
+N_infinita(S2, z, 1)
+```
+
+**Ejericio** ¿Qué precisión se requiere para que la muestra sea de tamaño n=100?. Alternativa a solución, usar función buscar objetivo en excel.
+
+**Ejercicio** Considera el factor de ajuste por población finita y calcula nuevamente el intervalo de confianza anterior s considerar el factor de ajuste por población finita $1 - \frac{n}{N}$.
+
+
+La muestra con el valor de $n$ obtenido es
+
+
+```{r}
+set.seed(12342)
+muestra_2 <- tiempos_ecobici %>% 
+              sample_n(148) %>% 
+              mutate(factor_exp = (N/148)) %>% 
+              select(tiempo_inicio, tiempo_fin, duracion_viaje, factor_exp)
+
+glimpse(muestra_2)
+```
+
+
+
+```{r}
+muestra_2 %>% summarise(suma = sum(duracion_viaje), promedio = mean(duracion_viaje), sd = sd(duracion_viaje))
+```
+
+El intervalo al 95% de confianza  está dado por
+
+```{r}
+alpha = 0.05
+valor = 1 - (alpha/2)
+z <- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)
+```
+
+
+```{r}
+# Error Estándar
+ee <- 14.21652	 / sqrt(148)
+ee
+```
+
+
+```{r}
+limite_inferior <- 17.85833 - z*ee
+limite_superior <- 17.85833 + z*ee
+c(limite_inferior,limite_superior)
+
+```
+
+
+Como podemos ver, aumentar el tamaño de muestra hizo que nuestro intervalo disminuyera su longitud.
+
+
+---
+
+Corroboremos los resultados obtenidos usando una librería de R diseñada para muestreo
+
+Cargamos librería
+```{r}
+suppressMessages(library(survey))
+```
+
+
+Definir diseño de MAS
+```{r}
+disenio_mas <-svydesign(id=~1, weights=~1,data=muestra_2)
+```
+
+Estimación
+```{r}
+promedio <-  svymean(~duracion_viaje,disenio_mas)
+promedio
+```
+
+Coeficiente de variación
+```{r}
+cv(promedio)
+```
+
+
+Intervalos de Confianza
+```{r}
+confint(promedio,level=0.95)
+```
+
+---
+
+**Tamaño de muestra para proporciones**
+
+Deseamos hacer una estimación para conocer la propoción de usuarios que son mujeres, con un intervalo de confianza del 95% y una precisión de 5 puntos porcentuales. 
+
+**Importante**. Notar que los tamaños de muestra están en función de la precisión deseada ($\delta$) y la escala de ésta varia conforme al problema. 
+
+Recordemos que la fórmula para el tamaño de muestra de una proporción es
+
+$$\frac{Z^{2} \cdot P(1-P)}{\delta^{2}}$$
+
+
+Considerando un intervalo con una confianza de 95, a veces se llega a simplificar la expresión anterior a 
+
+$$\frac{2^{2} \cdot 0.5(1-0.5)}{\delta^{2}} = \frac{1}{\delta^{2}} $$
+
+
+Se redondea el cuantil $z$ de 1.96 a 2 y se toma $P=0.5$ para maximizar la varianza y considerar el mayor número de muestra para los distintos valores de $P$. 
+
+
+
+
+```{r}
+set.seed(12343)
+muestra_p <- tiempos_ecobici %>% 
+              filter(!is.na(Genero_Usuario)) %>% 
+              sample_n(400) %>%  
+              mutate(indicadora = ifelse(Genero_Usuario == "F",1,0)) %>% 
+              select(tiempo_inicio, tiempo_fin, duracion_viaje, Genero_Usuario, indicadora) 
+
+glimpse(muestra_p)
+```
+
+
+
+```{r}
+muestra_p %>% summarise(p = mean(indicadora, na.rm = TRUE), sd = sd(indicadora, na.rm = TRUE))
+```
+
+El intervalo al 95% de confianza  está dado por
+
+```{r}
+alpha = 0.05
+valor = 1 - (alpha/2)
+z <- qnorm(p = 0.975, mean = 0, sd = 1)
+print(z)
+```
+
+Utilizando la fórmula vista arriba tenemos que el error estándar de nuestro estimador es
+
+$$\hat{V}(\hat{p}) = \frac{\hat{p}(1-\hat{p})}{n-1}$$
+
+
+```{r}
+# Error Estándar
+p_est <- 0.285
+ee <- sqrt(p_est * (1 - p_est))/ sqrt(400-1)
+ee
+```
+
+
+
+```{r}
+limite_inferior <- 0.285 - z*ee
+limite_superior <- 0.285 + z*ee
+c(limite_inferior,limite_superior)
+
+```
+
+
+---
+
+Corroboremos los resultados obtenidos usando una librería de R diseñada para muestreo
+
+Definir diseño de MAS
+```{r}
+disenio_mas <-svydesign(id=~1, weights=~1,data=muestra_p)
+```
+
+Estimación
+```{r}
+proporcion <-  svymean(~indicadora,disenio_mas)
+proporcion
+```
+
+Coeficiente de variación
+```{r}
+cv(proporcion)
+```
+
+
+Intervalos de Confianza
+```{r}
+confint(proporcion,level=0.95)
+```
+
+
+---
+ Sólo para validar, veamos los valores poblacionales
+ 
+```{r}
+tiempos_ecobici %>% 
+              filter(!is.na(Genero_Usuario)) %>% 
+              mutate(indicadora = ifelse(Genero_Usuario == "F",1,0)) %>% 
+              summarise( p = mean(indicadora), sd = sd(indicadora))
+```
+ 
+Para la muestra elegida, el intervalo sí cntiene el parámetro poblacional.
+
+**preguntas**
+
+* ¿Qué pasaría si para una proproción fijara una presición $\delta$ de 1?
+* piensen un caso donde hacer muestreo aleatorio simple para proporciones pueda dar resultados no esperados en las estimaciones.
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,119 @@
+---
+title: "Error_Estándar"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Error Estándar
+
+Por cada muestra que tomamos, calculamos 1 estimador usando esa muestra. Consideraremos la estimación como el valor de una variable aleatoria, dicha variable aleatoria tendrá una distribución especifíca. Es decir, la estimación obtenida es uno de los muchos valores que puede tomar nuestro estimador. 
+
+La variable original $X$ tiene $var(x)$ y nuestro estimador es la variable transformada $\bar{y}$ que es igual a $\Sigma\frac{x_{i}}{n}$.
+Teoricamente, la varianza de nuestro estimador es $var(\bar{y})/n$. por tanto, mientras mayor sea la muestra que tomemos, la varianza de nuestro estimador irá reduciendose.
+
+
+Estimación: valor particular
+Estimador: Una función
+
+¿Qué pasa si n=N? ¿Cuál sería la varianza de nuestro estimador?
+
+  
+**Ejemplo**. Veamos un ejemplo con los datos de ecobici
+
+
+[ecobici](https://www.ecobici.cdmx.gob.mx/es/informacion-del-servicio/open-data) del mes de agosto de 2021.
+
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+
+library(readr)
+library(stringr)
+library(lubridate)
+```
+
+
+```{r}
+ecobici <- read_csv("~/Documentos/Acatlan/datos/ecobici/datos_abiertos_ecobici_202108.csv")
+glimpse(ecobici)
+```
+
+```{r}
+tiempos_ecobici <- ecobici %>% 
+          rename(Fecha_Arribo = `Fecha Arribo`) %>%
+          mutate(Fecha_Retiro = gsub("/","-",Fecha_Retiro),
+                 Fecha_Arribo = gsub("/","-",Fecha_Arribo),
+                tiempo_inicio = dmy_hms(paste(Fecha_Retiro,Hora_Retiro, sep = " ")),
+                tiempo_fin = dmy_hms(paste(Fecha_Arribo,Hora_Arribo, sep = " ")),
+                duracion_viaje = tiempo_fin - tiempo_inicio) %>% 
+                # Filtrar casos donde la bici no se devuelve en ese día
+                filter(duracion_viaje < (60*24)) %>% 
+                filter(duracion_viaje < 90)
+
+glimpse(tiempos_ecobici)
+```
+
+
+Así se ve la distribución de la variable duracion de viaje
+```{r}
+ggplot(tiempos_ecobici) +
+  geom_histogram(mapping = aes(x = duracion_viaje))
+```
+
+
+```{r}
+tiempos_ecobici %>% summarise(promedio = mean(duracion_viaje), var =var(duracion_viaje), sd = sd(duracion_viaje))
+```
+
+
+---
+
+Nuestro estimador es el promedio de la duración del viaje, calculemos muchas veces el estimador y veamos como se ve su densidad, ¿a qué distribución se parece?
+
+Lo haremos 5,000 veces para tamaños de muestra de 1000
+
+```{r}
+vector_estimaciones <- vector(length = 5000)
+
+for (i in 1:5000){
+  muestra <- sample_n(tiempos_ecobici,1000)
+  valor_estimacion <- muestra %>% select(duracion_viaje) %>% pull() %>% mean()
+  vector_estimaciones[i] <- valor_estimacion
+  
+  if(i%%1000 == 0) {print(paste("itearación",i, sep = " "))}
+  
+}
+```
+
+
+```{r}
+ggplot() +
+  geom_histogram(mapping = aes(x = vector_estimaciones))
+```
+
+```{r}
+length(vector_estimaciones)
+sd(vector_estimaciones)
+```
+
+Recordemos que teoricamente, la desviación estándar de nuestro estimador (error estándar) es igual a $\frac{sd(x)}{sqrt(n)}$
+```{r}
+12.41002 / sqrt(1000)
+```
+
+
+
