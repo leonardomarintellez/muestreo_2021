@@ -1,0 +1,288 @@
+---
+title: "Tarea_01"
+author: "FES Acatlán"
+date: "septiembre de 2021"
+output: html_document
+---
+
+#### Fecha de entrega
+
+Fecha límite de entrega: domingo 26 de septiembre de 2021 a las 11:59 pm.
+Enviar solución al mail: leonardo.marintellez@gmail.com
+
+---
+
+### Tarea
+
+Utilizaremos los datos de la Encuesta ENIGH 2018. 
+
+La Encuesta Nacional de Ingresos y Gastos de los Hogares 2018 se llevó a cabo del 21 de agosto al 28 de noviembre de 2018. Su objetivo es proporcionar un panorama estadístico del comportamiento de los **ingresos y gastos de los hogares** en cuanto a su monto, procedencia y distribución; adicionalmente, ofrece información sobre las características ocupacionales y sociodemográficas de los integrantes del hogar, así como las características de la infraestructura de la vivienda y el equipamiento del hogar.
+
+Los datos utilizados pueden ser encontardos en la liga del repositorio o en la siguiente página en la cual encontrarán mucho más detalle de los mismos. 
+
+[ENIGH 2018](https://www.inegi.org.mx/programas/enigh/nc/2018/#Microdatos).
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+library(stringr)
+```
+
+Leer los datos
+```{r}
+enigh_2018 <- read_csv("~/Documentos/Acatlan/datos/ENIGH_2018/conjunto_de_datos_concentradohogar_enigh_2018_ns.csv", col_types = cols(folioviv = col_character(), ubica_geo = col_character() ))
+```
+
+Sólo conservar ciertas variables ya que no ocuparemos todas. Adicionalmente crearemos una variable para identificar la entidad federativa. Usualmente el INEGI usa una variable tipo carácter de longitud 5 para identificar estado y municipio, los primeros 2 dígitos son la entidad y los últimos 3 son el municipio. 
+
+Descripción de las variables: 
+
+* folioviv: Identificador de la vivienda.
+* foliohog: Código que identifica el hogar.
+* ubica_geo: Contiene la ubicación geográfica de la vivienda. Los primeros 2 dígitos representan la clave de la entidad y los siguientes 3 la clave del municipio.
+* ing_cor: Ingreso (corriente) trimestral del hogar.
+* gasto_mon: Gasto (corriente monetario) trimestral del hogar.
+
+```{r}
+datos <- enigh_2018 %>% select(folioviv,foliohog, ubica_geo, est_dis, upm, factor, ing_cor, gasto_mon) %>% 
+        mutate(edo_mun = str_pad(ubica_geo,width = 5,side = "left",pad = "0"),
+               cve_edo = substr(edo_mun,1,2))
+
+glimpse(datos)
+```
+
+
+### Ejercicios
+
+0. Identifica que no haya duplicados.
+
+1. Estima el ingreso promedio trimestral de los hogares. Reporta los siguientes 3 datos : Estimación, Error Estándar, Coeficiente de variación. Reflexiona lo siguiente: ¿esperaban ese dato de la estimación?.
+
+
+2. Estima el gasto promedio trimestral de los hogares. Reporta los siguientes 3 datos : Estimación, Error Estándar, Coeficiente de variación.
+
+
+El **coeficiente de variación** para una muestra se define de la siguiente manera 
+
+$$cv(\hat{\theta})= \frac{(\hat{V}(\hat{\theta}))^\frac{1}{2}}{\hat{\theta}}$$
+
+
+Es una medida que nos permite medir la variabilidad independientemente de la escala de las variables. 
+
+
+3. Hacer estimaciones de por Estado. ¿Cuáles son los 3 estados con ingreso más alto?. ¿Cuáles son los 3 estados con ingreso más bajo?. Si tuvieras que elegir una estimación para el ingreso promedio trimestral por hogar del estado de Chiapas  ¿cual elegirías, tu estimación obtenida para ese estado en esta pregunta o la estimación de la pregunta 1?. Explica brevemente tu elección.
+
+Las siguientes líneas le agregan el descriptivo a los códigos de los estados.
+
+```{r}
+cve_edo <-  str_pad(1:32, width = 2,side = "left",pad = "0") 
+desc_edo <- c("Aguascalientes", "Baja California", "Baja California Sur",
+"Campeche", "Coahuila de Zaragoza", "Colima", "Chiapas", "Chihuahua", "Ciudad de México",
+"Durango", "Guanajuato", "Guerrero", "Hidalgo", "Jalisco", "Estado de México", "Michoacán de Ocampo",
+"Morelos", "Nayarit", "Nuevo León", "Oaxaca", "Puebla", "Querétaro", "Quintana Roo", "San Luis Potosí", "Sinaloa",
+"Sonora", "Tabasco", "Tamaulipas", "Tlaxcala", "Veracruz de Ignacio de la Llave", "Yucatán", "Zacatecas")  
+
+catalogo_estados <- data_frame(cve_edo = cve_edo,desc_edo = desc_edo)
+head(catalogo_estados)
+  
+```
+
+```{r}
+datos_con_estados <- left_join(datos,catalogo_estados, by = c("cve_edo"))
+glimpse(datos_con_estados)
+```
+
+
+
+4. **(opcional)**. (Ingreso vs Gasto) Hacer una grafica de dispersión  del ingreso vs gasto por hogar para los hogares que tienen ingreso menor a la estimación obtenida en la primera pregunta.
+
+5. **(opcional)**. Graficar los histogramas del ingreso y gasto en la misma grafica. Fijar el eje x de cero a 250 mil.
+
+
+**Solución**
+
+
+¿Cuántas viviendas y cuántos hogares hay en los datos?
+
+```{r}
+enigh_2018 %>% 
+  mutate(llave_hogar = paste(folioviv,foliohog,sep = "_")) %>% 
+  summarise(num_viv = n_distinct(folioviv), num_hog = n_distinct(llave_hogar), suma_factor = sum(factor))
+```
+
+¿Cuántas viviendas y cuántos hogares hay en la muestra por estado?. ¿Qué estado tiene mayor número de muestra?
+
+```{r}
+datos %>% group_by(cve_edo) %>% 
+  mutate(llave_hogar = paste(folioviv,foliohog,sep = "_")) %>% 
+  summarise(num_viv = n_distinct(folioviv), num_hog = n_distinct(llave_hogar), suma_factor = sum(factor)) %>% 
+  arrange(desc(num_hog)) 
+```
+
+
+Estimaciones
+
+```{r}
+enigh_2018 %>% summarise(promedio_ingreso = mean(ing_cor), sd_ingreso = sd(ing_cor),
+                         promedio_gasto = mean(gasto_mon), sd_gasto = sd(gasto_mon))
+```
+
+Recordar que el error estándar es  la raiz de (var(x)/n)
+
+```{r}
+ee_ingreso <- 61234.05 / sqrt(74647)
+ee_ingreso
+```
+
+
+```{r}
+ee_gasto <- 28435.68 / sqrt(74647)
+ee_gasto
+```
+
+Coeficiente de variación
+```{r}
+224.12/46044
+```
+
+```{r}
+104.08/28990.03
+```
+
+
+**Solución usando la librería survey**
+
+```{r}
+suppressMessages(library(survey))
+```
+
+**Muestreo Aleatorio simple**
+
+Definir diseño
+```{r}
+disenio_mas <-svydesign(id=~1, weights=~1,data=datos)
+```
+
+Estimación
+```{r}
+promedio_ingreso <-  svymean(~ing_cor,disenio_mas)
+promedio_ingreso
+```
+
+```{r}
+promedio_gasto <-  svymean(~gasto_mon,disenio_mas, deff = TRUE)
+promedio_gasto
+```
+
+Coeficiente de variación
+```{r}
+cv(promedio_ingreso)
+```
+
+```{r}
+cv(promedio_gasto)
+```
+
+
+Intervalos de Confianza
+```{r}
+confint(promedio_ingreso,level=0.90)
+confint(promedio_ingreso,level=0.95)
+```
+
+```{r}
+confint(promedio_gasto,level=0.90)
+confint(promedio_gasto,level=0.95)
+```
+
+
+
+**Diseño ENIGH**
+
+```{r}
+disenio_enigh<-svydesign(id=~upm, strata=~est_dis, weights=~factor,data=datos)
+```
+
+
+```{r}
+estimacion_ingreso <- svymean(~ing_cor,disenio_enigh, deff = TRUE)
+estimacion_ingreso
+```
+
+```{r}
+estimacion_gasto <- svymean(~gasto_mon,disenio_enigh, deff= TRUE)
+estimacion_gasto
+```
+
+```{r}
+confint(estimacion_ingreso,level=0.90)
+confint(estimacion_gasto,level=0.90)
+```
+
+```{r}
+49610 + qnorm(0.95)*443.92
+```
+
+
+5. **(opcional)**. Graficar el ingreso vs gasto por hogar para los hogares que tienen ingreso menor a la estimación obtenida en la primera pregunta.
+
+```{r}
+ggplot(data = enigh_2018 %>% filter(ing_cor < 50000)) +
+  geom_point(mapping = aes(x = ing_cor, y = gasto_mon), alpha = 0.65) + 
+   geom_abline(intercept=0, slope=1.0, colour = "red")
+```
+
+¿Cuántos casos hay donde gasto sea mayor que ingreso
+
+```{r}
+enigh_2018 %>% filter(gasto_mon > ing_cor) %>% select(gasto_mon,ing_cor) %>% glimpse()
+```
+
+
+
+3. Hacer estimaciones de por Estado. ¿Cuáles son los 3 estados con ingreso más alto?. ¿Cuáles son los 3 estados con ingreso más bajo?.
+
+
+```{r}
+estimacion_x_estado <- datos_con_estados %>% group_by(cve_edo, desc_edo) %>% 
+  summarise(promedio_ingreso = mean(ing_cor), sd_ingreso = sd(ing_cor),
+                         promedio_gasto = mean(gasto_mon), sd_gasto = sd(gasto_mon)) %>% 
+  arrange(desc(promedio_ingreso))
+```
+
+```{r}
+head(estimacion_x_estado)
+```
+
+```{r}
+tail(estimacion_x_estado)
+```
+
+Grafica de Barras horizontales de mayor a menor.  
+
+```{r}
+ggplot(data = estimacion_x_estado) +
+geom_col(mapping = aes(x = reorder(cve_edo,promedio_ingreso, desc = TRUE), y = promedio_ingreso)) +
+coord_flip()
+```
+
+
+```{r}
+ggplot(data = datos) +
+  geom_histogram(mapping = aes(x = ing_cor), alpha = 0.65, bins = 100, fill = "blue") +
+  geom_histogram(mapping = aes(x = gasto_mon), alpha = 0.65, bins = 100, fill = "red") +
+  scale_x_continuous(limits = c(0,250000))
+```
+
+
+
+
