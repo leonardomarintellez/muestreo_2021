@@ -1,0 +1,42 @@
+---
+title: "01_Introducción"
+author: "LMT"
+date: "octubre de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introdución
+
+**Diseño de la muestra**. Es como se va a seleccionar una muestra.
+
+**Estrato**. Un estrato es un subconjuto de las unidades de la población. Los estratos forman una `partición` de la población y se selecciona muestra de manera independiente en cada estrato.
+
+Los estratos agrupan unidades homogéneas. Se obtienen estimadores de los parámetros para cada estrato y luego se combinan para tener los estimadores del total de la pobación.
+
+**Razones para usar el diseño de muestra estratificado**
+
+1. Para reducir la varianza de los estimadores, es decir, para tener mayor precisión. Ayuda sin tener que aumentar la complejidad matemática.
+2. Disponibilidad de marcos muestrales. 
+3. Reducir costo.
+4. Para fines de control de muestra. Si se requiere que ciertos dominios de estudio o determinadas subpoblaciones estén contenidos en la muestra 
+
+Notas
+- Se pueden tener distintos diseños de muestra en cada estrato, pero usualmente se usa el mismo en todos.
+
+
+La recomendación usual es que los elemetos sean homogéneos al interior del estrato y heterogeneos al exterior. Otra alternativa es que la variable de estratificación esté relacionada con la variable de estudio (est de pende de la disponibilidad de de dicha variable en nuestro marco muestral). Adicionalmente, los estratos pueden ser bloques geográficos definidos.
+
+
+## Notación
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_001.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_002.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_003.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_004.png)

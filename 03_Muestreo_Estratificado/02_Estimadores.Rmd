@@ -1,0 +1,301 @@
+---
+title: "02_Estimadores"
+author: "LMT"
+date: "29/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Estimadores
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_005.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_006.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_007.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_008.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/me_009.png)
+
+## Ejemplos
+
+Para nuestro primer ejemplo usaremos datos del [conteo rápido](https://www.ine.mx/voto-y-elecciones/conteos-rapidos-ine/) de las elecciones de 2006.
+
+**¿Qué es el Conteo Rápido?**
+
+El Conteo Rápido es un procedimiento estadístico para estimar las tendencias de los resultados finales de una elección. Se selecciona una muestra aleatoria de todas las casillas instaladas el día de la Jornada Electoral, a través de un proceso matemático que se realiza con diferentes métodos de estimación y es aprobado previamente por la autoridad electoral.
+
+**Marco Geografico Muestral**
+
+A la fecha de elaboración de estas notas, el marco muestral está compuesto por 7,636 casillas, distribuidas en 481 estratos y 300 distritos electorales. Lo anterior para una mejor organización electoral. [marco geografico electoral](https://cartografia.ife.org.mx/). 
+
+Para mayor detalle consultar el [Proceso Federal Electoral 2006](https://portalanterior.ine.mx/documentos/proceso_2005-2006/proceso_resultados.html)
+
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+```
+
+Breve descripción de los datos
+
+* El diseño utilizado en muestreo estratificado. 
+* Se seleccionó una muestra de 7,200 casillas repartida en 300 estratos.
+* La tabla muestra_2006.csv contiene el identificador de casilla, identificador de la entidad federativa, el número de votos que recibió cada partido o coalición, el total de votos registrados en la casilla y el estrato. Nota. La columna otros contine el número de votos nulos y votos de candidatos no registrados.
+* la tabla estratos.csv contiene el número total de casillas en el estrato (columna Nh) y el número de casillas que se seleccionaron en la muestra (nh)
+
+
+Leer los datos
+
+```{r}
+muestra_2006 <- read_csv("~/Documentos/Acatlan/datos/conteo_rapido_2006/muestra_2006.csv")
+glimpse(muestra_2006)
+```
+
+
+```{r}
+estratos <- read_csv("~/Documentos/Acatlan/datos/conteo_rapido_2006/estratos.csv")
+glimpse(estratos)
+```
+
+Unir la información de las tablas
+
+```{r}
+datos_elecciones <-  left_join(muestra_2006,estratos, by = c("estrato")) %>% 
+                      mutate(fh = Nh/nh, # se creó la variable factor de expansión de cada estrato
+                             fpc = nh/Nh)  %>% 
+                      arrange(estrato, casilla_id)
+
+glimpse(datos_elecciones)
+
+```
+
+Recuerden validar la correcta unión de las tablas.
+
+Número de casillas (en la muestra) y estratos 
+```{r}
+muestra_2006 %>% summarise(num_casillas = n_distinct(casilla_id), num_estratos = n_distinct(estrato))
+```
+
+Número de casillas totales
+```{r}
+estratos %>% summarise(num_casillas_muestra = sum(nh), num_casillas_totales = sum(Nh))
+```
+
+Número de muestra
+```{r}
+datos_elecciones %>% summarise(conteo = n(), suma_factores = sum(fh), expansion_votantes = sum(fh*total))
+```
+
+
+**Estimación** del total para el pri
+
+Lo haremos por pasos para ejemplificar. primero colapsemos la informacióna  nivel estrato
+
+```{r}
+estimacion_x_estrato <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(fh*pri_pvem), S2h = var(pri_pvem),
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh), nh = mean(nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate(wh = Nh / sum(Nh))
+
+glimpse(estimacion_x_estrato)
+
+```
+
+Corroborar que los pesos sumen 1
+
+```{r}
+estimacion_x_estrato %>% summarise(sum(wh))
+```
+
+La estimación total de votos para el pri es
+
+```{r}
+estimacion_x_estrato %>% summarise(total_est = sum(yh))
+```
+
+Veamos resultados en esta fuente no oficial [resultados elecciones](https://es.wikipedia.org/wiki/Elecciones_federales_de_M%C3%A9xico_de_2006)
+
+La varianza estimada del estimador está dada por 
+
+```{r}
+# La suma de las varianzas de cada estrato
+estimacion_x_estrato %>% 
+                    mutate(expresion = (Nh**2)*(1-nh/Nh)*(S2h/nh)) %>% 
+                    summarise(var_est = sum(expresion))
+```
+
+---
+
+Hagámos una estimación para otro partido
+
+Lo haremos por pasos para ejemplificar. primero colapsemos la informacióna  nivel estrato
+
+```{r}
+estimacion_x_estrato <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(fh*pan), S2h = var(pan),
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh), nh = mean(nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate(wh = Nh / sum(Nh))
+
+glimpse(estimacion_x_estrato)
+
+```
+
+La estimación total de votos para el pan es
+
+```{r}
+estimacion_x_estrato %>% summarise(total_est = sum(yh))
+```
+
+
+La varianza estimada del estimador está dada por 
+
+```{r}
+# La suma de las varianzas de cada estrato
+estimacion_x_estrato %>% 
+                    mutate(expresion = (Nh**2)*(1-nh/Nh)*(S2h/nh)) %>% 
+                    summarise(var_est = sum(expresion))
+```
+```{r}
+#Error Estándar del estimador
+sqrt(5739832740)
+```
+
+
+Ahora sin considerar el ajuste de corrección por población finta
+
+```{r}
+estimacion_x_estrato %>% 
+                    mutate(expresion = (Nh**2)*(S2h/nh)) %>% 
+                    summarise(var_est = sum(expresion))
+```
+
+```{r}
+#ee
+sqrt(6074215972)
+```
+
+
+
+**Ejercicio**. Hagan la estimación para cada partido y ordenen los resultados en una tabla. Ordenen la tabla de manera descendente de acuerdo al valor de sus estimaciones. Nota, si requieren hacer copy-paste de código más de 3 veces consideren la opción de crear una función.
+
+
+Utilicemos la librería survey para obtener resultados y comparar con lo calculado previamente
+
+
+```{r}
+glimpse(datos_elecciones)
+```
+
+Cargar librería
+```{r}
+suppressMessages(library(survey))
+```
+
+Definir diseño de muestreo estratificado
+```{r}
+disenio_elecciones <-svydesign(id=~1, strata = ~estrato, weights=~fh,data=datos_elecciones)
+```
+
+Estimación. Agreguemos un parámetro adicional a la función
+```{r}
+total_votos <-  svytotal(~pan,disenio_elecciones, deff = TRUE)
+total_votos
+```
+
+Intervalos de Confianza
+```{r}
+confint(total_votos,level=0.95)
+```
+
+**Ejercicio** Revisar como se puede incluir el ajuste de correción por población finita en la función svytotal.
+
+```{r}
+# fpc : finite population correction
+disenio_elecciones2 <-svydesign(id=~1, strata = ~estrato, weights=~fh, fpc = ~fpc, data=datos_elecciones)
+total <-  svytotal(~pan,disenio_elecciones2, deff = TRUE)
+print(total)
+print(confint(total,level=0.95))
+```
+
+
+Ajustar el código para considerar muestreo aleatorio simple y comprar resulatdos respecto al diselo estratificado
+```{r}
+datos_mas <- datos_elecciones %>% mutate(factor_mas = 130777/7200)
+disenio_mas <-svydesign(id=~1, weights=~factor_mas,data=datos_mas)
+total_mas <-  svytotal(~pan,disenio_mas)
+print(total_mas)
+
+print(confint(total_mas,level=0.95))
+
+```
+
+
+DEFF 
+
+```{r}
+(77937**2)/(112206**2)
+```
+
+
+
+### Efecto de Diseño
+
+¿Qué es el **deff**? 
+
+En 1965 Kish en su libro _Survey Sampling_  propuso la medida efecto de diseño (Design effect), denotado por 
+
+$$Deff(\hat{\theta}) = \frac{V_{D}(\hat{\theta})}{V_{MAS}(\hat{\theta})}$$
+
+Usualmente se usa el muestreo aleatorio simple como punto de referencia.
+
+¿Para qué se usa?
+
+1. Para comparar eficiencia de diversos diseños de muestreo. 
+
+Se busca que deff < 1
+
+Normalmente, el deff < 1 si se usa un diseño de estratificación y deff > 1 si se usa un diseño por conglomedados.
+
+En la practica cuando se usan ambos (estratos y conglomedaros) no se sabe que efectodominará. 
+
+
+
+2. Auxiliar en el tamaño de muestra
+
+Notar que si deff > 1 para el tamaño de muestra obtenido para un nivel de confianza y una precisión fijos. Entonces 
+
+$n = n_{0} \cdot Deff$ nos indica en cuanto tenemos que aumentar la muestra para disminuir la varianza del estimador y a tener a lo más ma misma varianza que se obtendría con muestreo aleatorio simple.
+
+
+
+## Estimadores de razón
+
+Con los ejemplos anteriores obtuvimos estimaciones para el total de votos, no obstante, no es como suelen reportarse las estimaciones 
+
+
