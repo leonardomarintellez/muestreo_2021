@@ -1,0 +1,120 @@
+---
+title: "Tarea_02"
+author: "LMT"
+date: "agosto de 2021"
+output: html_document
+---
+
+**Fecha de entrega**
+
+* Fecha límite de entrega: viernes 8 de agosto de 2021 a las 11:59 pm.
+* Entregable: Archivo word, pdf o html con los resultados y comentarios. 
+* Enviar solución al mail: leonardo.marintellez@gmail.com y en el asunto poner **muestreo2021_tarea02**
+
+Lo importante entender la idea general de los pasos a seguir, si tienen dificultades para usar R intenten realizar la tarea en Excel.
+
+
+### Tarea
+
+Los datos a utilizar para esta tarea serán los del conteo rápido de 2006. Los datos se encuentran en el la siguiente liga [datos conteo rápido 2006](https://drive.google.com/drive/folders/1C0mzbDDK-m4fZfg69iTlOy8v1cUDz_hn?usp=sharing).
+
+**¿Qué es el Conteo Rápido?**
+
+El Conteo Rápido es un procedimiento estadístico para estimar las tendencias de los resultados finales de una elección. Se selecciona una muestra aleatoria de todas las casillas instaladas el día de la Jornada Electoral, a través de un proceso matemático que se realiza con diferentes métodos de estimación y es aprobado previamente por la autoridad electoral.
+
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+```
+
+Breve descripción de los datos
+
+* El diseño utilizado en muestreo estratificado. 
+* Se seleccionó una muestra de 7,200 casillas repartida en 300 estratos.
+* La tabla muestra_2006.csv contiene el identificador de casilla, identificador de la entidad federativa, el número de votos que recibió cada partido o coalición, el total de votos registrados en la casilla y el estrato. Nota. La columna otros contine el número de votos nulos y votos de candidatos no registrados.
+* la tabla estratos.csv contiene el número total de casillas en el estrato (columna Nh) y el número de casillas que se seleccionaron en la muestra (nh)
+
+
+Leer los datos
+
+```{r}
+muestra_2006 <- read_csv("~/Documentos/Acatlan/datos/conteo_rapido_2006/muestra_2006.csv")
+glimpse(muestra_2006)
+```
+
+
+```{r}
+estratos <- read_csv("~/Documentos/Acatlan/datos/conteo_rapido_2006/estratos.csv")
+glimpse(estratos)
+```
+
+Unir la información de las tablas
+
+```{r}
+datos_elecciones <-  left_join(muestra_2006,estratos, by = c("estrato")) %>% 
+                      mutate(fh = Nh/nh, # se creó la variable factor de expansión de cada estrato
+                             fpc = nh/Nh)  %>% 
+                      arrange(estrato, casilla_id)
+
+glimpse(datos_elecciones)
+
+```
+
+Recuerden validar la correcta unión de las tablas.
+
+---
+
+**Estimación** del total para un partido
+
+Primero colapsemos la informacióna  nivel estrato
+
+```{r}
+estimacion_x_estrato <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(fh*pan), S2h = var(pan),
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh), nh = mean(nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate(wh = Nh / sum(Nh))
+
+glimpse(estimacion_x_estrato)
+
+```
+
+La estimación total de votos para el el partido elegido es
+
+```{r}
+estimacion_x_estrato %>% summarise(total_est = sum(yh))
+```
+
+La varianza estimada del estimador está dada por 
+
+```{r}
+# La suma de las varianzas de cada estrato
+estimacion_x_estrato %>% 
+                    mutate(expresion = (Nh**2)*(1-nh/Nh)*(S2h/nh)) %>% 
+                    summarise(var_est = sum(expresion))
+```
+
+```{r}
+#Error Estándar del estimador
+sqrt(5739832740)
+```
+
+
+### Ejercicio
+
+Realizar  la estimación para cada partido y ordenar los resultados en una tabla. Ordenen la tabla de manera descendente de acuerdo al valor de sus estimaciones. Nota, si requieren hacer copy-paste de código más de 3 veces consideren la opción de crear una función. 
