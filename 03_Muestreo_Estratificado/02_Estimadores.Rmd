@@ -121,6 +121,24 @@ glimpse(estimacion_x_estrato)
 
 ```
 
+
+```{r}
+estimacion_x_estrato <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(fh*pri_pvem), S2h = var(pri_pvem),
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh), nh = mean(nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate(wh = Nh / sum(Nh))
+
+head(estimacion_x_estrato)
+```
+
+
+
 Corroborar que los pesos sumen 1
 
 ```{r}
@@ -294,8 +312,171 @@ $n = n_{0} \cdot Deff$ nos indica en cuanto tenemos que aumentar la muestra para
 
 
 
-## Estimadores de razón
+## Estimadores de razón (ratio)
 
-Con los ejemplos anteriores obtuvimos estimaciones para el total de votos, no obstante, no es como suelen reportarse las estimaciones 
+Con los ejemplos anteriores obtuvimos estimaciones para el total de votos, no obstante, no es como suelen reportarse las estimaciones.
+
+Los estimadores de una razón no no son exactamente insesgados, pero en muestras grandes el sesgo es practicamente despreciable. El sesgo es aproximadamente proporcional a $\frac{1}{n}$ y el error estándar es proporcional a $\frac{1}{\root{n}}$. Estos estimadores son aproximadamente insesgados.
+
+Dificultades:
+
+* No es insesgado
+* $\theta$ no es lineal
+
+Preguntas. ¿Qué opciones hay para los intervalos de confianza cuando el estimador no es insesgado?.
+¿Existen intervalos no simetricos?
+
+Para muestreo aleatorio simple el estimador de razón está dado por 
+
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/ratio1.png)
+
+Sin considerar el factor de expansión
+```{r}
+razon_mas <- datos_elecciones %>% summarise(razon = sum(pan)/sum(total)) %>% pull()
+razon_mas
+```
+
+Considerando el factor de expansión
+```{r}
+razon_mas <- datos_elecciones %>% summarise(razon = sum(pan*fh)/sum(total*fh)) %>% pull()
+razon_mas
+```
+
+Nos da lo mismo que usando la librería survey, pero ¿qué está mal en el paso anterior?.
+Recordemos que bajo MAS, cada elemento tiene la misma probabilidad de selección
+
+
+```{r}
+varianza_razon_mas <- function(y,x,N){
+  
+  n <- length(y)
+  #print(n)
+  R <- sum(y)/sum(x)
+  x_barra <- mean(x)
+  semi_S2 <- sum((y-R*x)**2)/(n-1)
+  
+  var <- (1-n/N)*(1/n)*(1/(x_barra)**2)*semi_S2
+  return(var)
+  
+}
+  
+```
+
+
+```{r}
+N <- 130777
+votos_partido <- datos_elecciones %>% select(pan) %>% pull()
+votos_total <- datos_elecciones %>% select(total) %>% pull()
+
+varianza_razon_mas(votos_partido,votos_total,N)
+```
+
+```{r}
+ee_ratio_mas <- sqrt(varianza_razon_mas(votos_partido,votos_total,N))
+ee_ratio_mas
+```
+
+
+Mientras que en **muestreo estratificado** es
+
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/ratio2.png)
+
+
+**Pregunta** ¿Dentro de cada estrato, el factor de expansión para cada individuo de mi muestra puede variar o simepre es el mismo? (considerar que hasta el momento sólo hemos mencionado muestreo aleatorio simple dentro de los estratos).
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/ratio3.png)
+
+El estimador de razón combinado se usa cuando se tienen muchos estratos y/o los tamaños de muestra en cada estrato son pequeños, mientras que el estimador de razón se ocupa cuando se tienen pocos estratos y/o los tamaños de muestra son grandes.
+
+Dado que en el estimador de razón separado las varianzas se suman, es conveniente usarlo cuando los tamaños de muestra en cada estrato sean grandes.
+
+La parte del calculo de varianza para el estimador combinado la dejaremos pendiente para cuando veamos Bootstrap.
+
+Con lo anterior. ¿Ustedes qué estimador ocuparían para hacer las estimaciones? ¿separado o combinado?
+
+Hagamos el cálculo del combinado
+
+```{r}
+#colapsamos la info por estratato. Incluir el factor de expansión
+aggregate_x_estrato <- datos_elecciones %>% group_by(estrato) %>% 
+                  summarise(yh = sum(fh*pan), xh = sum(fh*total))
+
+head(aggregate_x_estrato)
+```
+
+```{r}
+# calcular estimador. sumar para todos los estratos
+aggregate_x_estrato %>% summarise( ratio = sum(yh)/sum(xh))
+```
+
+
+
+```{r}
+# Calcular el ratio para cada estrato y después hacer la suma ponderada
+ratio_x_estrato <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(pan), xh = sum(total), rh= yh/xh,
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate( N = sum(Nh), wh = Nh / N)
+
+head(ratio_x_estrato)
+
+```
+
+```{r}
+# Corroborar que los pesos sumen 1
+ratio_x_estrato %>% summarise( w = sum(wh))
+```
+
+```{r}
+#Suma ponderada
+ratio_x_estrato %>% summarise( ratio = sum(wh*rh))
+```
+
+
+
+**Estimación con librería survey**
+
+Definir diseño de muestreo estratificado
+```{r}
+disenio_elecciones <-svydesign(id=~1, strata = ~estrato, weights=~fh,data=datos_elecciones)
+```
+
+
+
+Estimación. Revisar la documentación de la función para saber si se ocupa un estimador de razón separado o uno combinado.
+
+```{r}
+ratio_pan <-  svyratio(~pan,~total,disenio_elecciones)
+ratio_pan
+```
+
+```{r}
+names(ratio_pan)
+ratio_pan$ratio
+sqrt(ratio_pan$var)
+```
+
+Intervalos de Confianza
+```{r}
+confint(ratio_pan,level=0.95)
+```
+
+
+
+
+
+
+
+
+
+
 
 
