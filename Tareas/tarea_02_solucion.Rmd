@@ -1,0 +1,129 @@
+---
+title: "solución Tarea 2"
+author: "RoarOmegaRoar"
+date: "6/10/2021"
+output: html_document
+---
+cargar librerías
+
+```{r}
+rm(list = ls())
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+```
+cargar datos
+
+```{r}
+muestra_2006 <- read.csv("~/Documentos/Acatlan/datos/conteo_rapido_2006/muestra_2006.csv") 
+glimpse(muestra_2006)
+estratos <- read.csv("~/Documentos/Acatlan/datos/conteo_rapido_2006/estratos.csv")
+glimpse(estratos)
+datos_elecciones <-  left_join(muestra_2006,estratos, by = c("estrato")) %>% 
+  mutate(fh = Nh/nh, # se creó la variable factor de expansión de cada estrato
+         fpc = nh/Nh)  %>% 
+  arrange(estrato, casilla_id)
+
+
+glimpse(datos_elecciones)
+
+```
+## Crear Función
+
+Hay distintas opciones. A continuación mostraremos 2.
+
+### 1. Non standar evaluation
+
+**Non standar evaluation** te permite utilizar un argumento de una función como una expresión y no como un valor. Haremos uso de la función enquo.
+
+
+```{r}
+
+## Parámetros de la función
+  ## partido: nombre de la variable que analizaremos. (sin comillas)
+
+estimacion_opcion_nse <- function(partido) {
+
+# Notar que después de esta parte, para hacer referencia a la variable partido se hace uso del doble signo de exclamación    
+partido <- dplyr::enquo(partido)
+nombre <- datos_elecciones %>% slice(1) %>% select(!!partido) %>% names()
+  
+tabla <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(fh*!!partido), S2h = var(!!partido),
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh), nh = mean(nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate(wh = Nh / sum(Nh))
+
+resultado <- tabla%>%   
+              mutate(expresion = (Nh**2)*(1-nh/Nh)*(S2h/nh)) %>% 
+              summarise(estimacion = sum(yh),  varianza = sum(expresion)) %>% 
+              mutate(nombre_partido = nombre) %>% 
+              select(nombre_partido, estimacion, varianza)
+
+return(resultado)
+
+}
+
+```
+
+
+**Ejecutar Función**
+
+```{r}
+tabla1 <- estimacion_opcion_nse(pri_pvem)
+tabla2 <- estimacion_opcion_nse(pan)
+tabla3 <- estimacion_opcion_nse(panal)
+tabla4 <- estimacion_opcion_nse(prd_pt_conv)
+tabla5 <- estimacion_opcion_nse(psd)
+tabla6 <- estimacion_opcion_nse(otros)
+```
+
+Hacer un append de la tabla y ordear
+
+```{r}
+tabla_estimaciones <- bind_rows(tabla1, tabla2, tabla3, tabla4, tabla5, tabla6) %>% arrange(desc(estimacion))
+tabla_estimaciones
+```
+
+
+### 2. Glue
+
+Si se desea usar los nombres de las variables en los resultados se puede usar la sintaxis glue en conjunción con :=
+
+```{r}
+estimacion_opcion_glue <- function(partido) {
+ 
+  
+tabla <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(estrato) %>% 
+                        # Calcular el total por estrato
+                        summarise(yh = sum(fh*{{partido}}), S2h = var({{partido}}),
+                                  #Las variables Nh y nh las ocuparemos más adelante por eso también las incluimos. 
+                                  #De estas variables necesitamos el dato por estrato así que por eso pedimos la media,
+                                  Nh = mean(Nh), nh = mean(nh)) %>% 
+                        # Aprovechar este paso para calcular el peso de los estratos
+                        mutate(wh = Nh / sum(Nh))
+
+
+resultado <- tabla%>%   
+              mutate(expresion = (Nh**2)*(1-nh/Nh)*(S2h/nh)) %>% 
+                    summarise("estimacion_{{partido}}":=  sum(yh))
+
+return(resultado)
+
+}
+
+```
+
+**ejecutar función**
+
+```{r}
+estimacion_opcion_glue(pan)
+```
+
