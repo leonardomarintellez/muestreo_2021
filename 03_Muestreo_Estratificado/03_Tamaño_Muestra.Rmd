@@ -1,0 +1,47 @@
+---
+title: "Tamaño de Muestra"
+author: "LMT"
+date: "11/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Tamaño de muestra
+
+
+### Distribución de la muestra e los Estratos
+
+¿Cómo se debe repartir la muestra $n$ entre los $L$ estratos?. Iniciemos con la opción más sencilla.
+
+1. **Distribución Proporcional**. Se considera que tanto los costos como las varianzas son constantes en todos los estratos.
+
+$$n_h = n \frac{N_h}{N} = nW_h$$
+
+Es decir, la muestra de cada estrato corresponde a la proporcion del número de elementos muestrales del estrato respecto al total de elementos de la población.
+
+
+**Ejercicio**.  Veamos el enfoque de nosotros construir una muestra estratificada. 
+
+
+Utilizaremos los datos de [precios de casas](https://www.kaggle.com/c/house-prices-advanced-regression-techniques).
+
+Asumir n determinada e igual a 100, extraer una muestra estratificada proporcional considerando muestreo aleatorio simple dentro de cada estrato. La variable que usaremos para estratificar es MSZoning.
+
+Obtener/Responder lo siguiente:
+
+* La muestra estratificada
+* ¿cuál es su factor de expansión para cada estrato?
+* Realizar estimación del precio promedio y el error estándar bajo muestreo aleatorio simple
+* Realizar estimación del precio promedio y el error estándar bajo muestreo estratificado
+
+
+
+
+### Construcción de los estratos a partir de una variable
+
+
+
+

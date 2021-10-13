@@ -470,10 +470,112 @@ confint(ratio_pan,level=0.95)
 ```
 
 
+### Dominancia por Entidad Federativa
+
+Para finalizar esta sección de estimación de elecciones, haremos un mapa de dominancia por entidad federativa, es decir, visualizaremos que partido domina cada Estado.
+
+La siguiente solución pertenece a Arana Monroy María Guadalupe elaborada en [google data studio](https://datastudio.google.com/reporting/0B5FF6JBKbNJxOWItcWo2SVVVeGc/page/DjD) 
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/mapa_elecciones_Arana.png)
+
+Utilizando lo visto hasta ahora en clase, una opción de solución quedaría de la siguiente manera
+
+```{r}
+## Función que calcula la estimación del total de votos para cada Entidad por partido
+
+## Parámetros de la función
+  ## partido: nombre de la variable que analizaremos. (sin comillas)
+
+estimacion_opcion_nse <- function(partido) {
+
+# Notar que después de esta parte, para hacer referencia a la variable partido se hace uso del doble signo de exclamación    
+partido <- dplyr::enquo(partido)
+nombre <- datos_elecciones %>% slice(1) %>% select(!!partido) %>% names()
+  
+tabla <- datos_elecciones %>% 
+                        # Agrupar por estrato para que lo que hagamos se haga por bloques (en este caso por estrato)
+                        group_by(edo_id, estrato) %>% 
+                        # Calcular el total por entidad y estrato 
+                        summarise(yh = sum(fh*!!partido))
+
+resultado <- tabla%>%   
+              summarise(estimacion = sum(yh)) %>% 
+              mutate(nombre_partido = nombre) %>% 
+              select(edo_id, nombre_partido, estimacion)
+
+return(resultado)
+
+}
+
+```
+
+
+**Ejecutar Función**
+
+```{r}
+tabla1 <- estimacion_opcion_nse(pri_pvem)
+tabla2 <- estimacion_opcion_nse(pan)
+tabla3 <- estimacion_opcion_nse(panal)
+tabla4 <- estimacion_opcion_nse(prd_pt_conv)
+tabla5 <- estimacion_opcion_nse(psd)
+tabla6 <- estimacion_opcion_nse(otros)
+```
+
+Hacer un append de la tabla, ordear y conservar el registro con mayor número de votos
+
+```{r}
+tabla_estimaciones <- bind_rows(tabla1, tabla2, tabla3, tabla4, tabla5, tabla6) %>% 
+                      arrange(edo_id,desc(estimacion)) %>% 
+                      group_by(edo_id) %>% 
+                      top_n(1)
+tabla_estimaciones
+```
+
+
+Leer los datos que contienen los shapes para graficar
 
 
 
+```{r}
+#Cargar librería para graficar mapas
+library(sf)
+```
 
+
+```{r}
+# Leer el dataframe de shapes
+shapes <- st_read("~/Documentos/Acatlan/datos/shapes/01_32_mun.shp") %>% 
+          # mcrear la variable edo_id númerica  a partir de la variable CVEGEO para unir más fácil con la info que ya se tiene 
+          mutate(edo_id = parse_number(substr(CVEGEO,1,2)))
+glimpse(shapes)
+```
+
+
+Unir la info con los shapefiles. 
+
+```{r}
+estimaciones_shapes <- shapes %>%   
+                    left_join((tabla_estimaciones), by = c("edo_id")) %>% 
+                    mutate(color_partido = ifelse(nombre_partido == "pan",1,0))
+                    
+
+glimpse(estimaciones_shapes)
+```
+
+
+
+```{r}
+estimaciones_shapes %>%
+  ggplot(aes(fill = factor(color_partido, labels = c("PRD","PAN")))) +
+  geom_sf(colour = "grey75", size = 0.05) +
+  labs(title = "Elecciones Federales 2006",
+       subtitle = "Partido con más votos por estado") +
+  scale_fill_manual("Partidos",
+                    values = c("yellow", "blue")) +
+  theme_bw() 
+```
+
+Notar que quizá era más conveniente descargar los shape files a nivel Estado en lugar de usar los shape files a nivel Municipio.
 
 
 
