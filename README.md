@@ -4,12 +4,17 @@
 
 ### Anuncios
 
-* Primer examen: jueves 14 de octubre de 2021, 8 pm.
+* Primer examen: jueves 14 de octubre de 2021, 20:00 hrs
+
+**Sesiones prácticas de R para resolver dudas**
+
+- Sábado 16 de octubre, 9:00 - 11:00 hrs.
+- Sábado 23 de octubre, 13:00 - 15:00 hrs.
 
 
 **Introducción**
 
-El curso cubrirá los elementos teóricos y prácticos de las diversas técnicas de muestreo, así como casos prácticos reales de las aplicaciones del muestreo. Al final del curso el alumno será capaz de replicar resultados de publicaciones de interés genral (Censos, Elecciones, ...), asimismo ganará experiencia explotando datos en R y Excel.
+El curso cubrirá los elementos teóricos y prácticos de las diversas técnicas de muestreo, así como casos prácticos reales de las aplicaciones del muestreo. Al final del curso el alumno será capaz de replicar resultados de publicaciones de interés general (Censos, Elecciones, ...), asimismo ganará experiencia explotando datos en R y Excel.
 
 **Temario**
 
