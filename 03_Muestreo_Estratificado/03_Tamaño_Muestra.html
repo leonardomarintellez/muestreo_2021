@@ -12,7 +12,6 @@
 
 <meta name="author" content="LMT" />
 
-<meta name="date" content="2021-11-10" />
 
 <title>Tamaño de Muestra</title>
 
@@ -365,7 +364,7 @@ summary {
 
 <h1 class="title toc-ignore">Tamaño de Muestra</h1>
 <h4 class="author">LMT</h4>
-<h4 class="date">11/10/2021</h4>
+<h4 class="date">octubre de 2021</h4>
 
 </div>
 
@@ -386,10 +385,149 @@ summary {
 <p>Obtener/Responder lo siguiente:</p>
 <ul>
 <li>La muestra estratificada</li>
-<li>¿cuál es su factor de expansión para cada estrato?</li>
+<li>¿Cuál es su factor de expansión para cada estrato?</li>
 <li>Realizar estimación del precio promedio y el error estándar bajo muestreo aleatorio simple</li>
 <li>Realizar estimación del precio promedio y el error estándar bajo muestreo estratificado</li>
 </ul>
+<pre class="r"><code># Limpiar área de trabajo
+rm(list = ls())</code></pre>
+<pre class="r"><code># Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+
+suppressMessages(library(survey))</code></pre>
+<pre class="r"><code>precios &lt;- read_csv(&quot;/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/datos/HousePrices/HousePrices.csv&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_character(),
+##   Id = col_double(),
+##   MSSubClass = col_double(),
+##   LotFrontage = col_double(),
+##   LotArea = col_double(),
+##   OverallQual = col_double(),
+##   OverallCond = col_double(),
+##   YearBuilt = col_double(),
+##   YearRemodAdd = col_double(),
+##   MasVnrArea = col_double(),
+##   BsmtFinSF1 = col_double(),
+##   BsmtFinSF2 = col_double(),
+##   BsmtUnfSF = col_double(),
+##   TotalBsmtSF = col_double(),
+##   `1stFlrSF` = col_double(),
+##   `2ndFlrSF` = col_double(),
+##   LowQualFinSF = col_double(),
+##   GrLivArea = col_double(),
+##   BsmtFullBath = col_double(),
+##   BsmtHalfBath = col_double(),
+##   FullBath = col_double()
+##   # ... with 18 more columns
+## )</code></pre>
+<pre><code>## See spec(...) for full column specifications.</code></pre>
+<pre class="r"><code>precios %&gt;% summarise(parametro = mean(SalePrice))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   parametro
+##       &lt;dbl&gt;
+## 1   180921.</code></pre>
+<p>¿cuántos elementos tenemos en cada estrato?</p>
+<pre class="r"><code>precios %&gt;% group_by(MSZoning) %&gt;% 
+  summarise(Nh = n(), promedio_precio = mean(SalePrice))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 5 x 3
+##   MSZoning    Nh promedio_precio
+##   &lt;chr&gt;    &lt;int&gt;           &lt;dbl&gt;
+## 1 C (all)     10          74528 
+## 2 FV          65         214014.
+## 3 RH          16         131558.
+## 4 RL        1151         191005.
+## 5 RM         218         126317.</code></pre>
+<p>De acuerdo con la descripción de campos las categorías son:</p>
+<pre class="r"><code>#MSZoning: Identifies the general zoning classification of the sale.
+        
+#       A   Agriculture
+#       C   Commercial
+#       FV  Floating Village Residential
+#       I   Industrial
+#       RH  Residential High Density
+#       RL  Residential Low Density
+#       RP  Residential Low Density Park 
+#       RM  Residential Medium Density</code></pre>
+<p>Crear vector de estratos y tamaños de muestra por estrato</p>
+<pre class="r"><code>n &lt;- 100
+tabla_auxiliar &lt;- precios %&gt;% group_by(MSZoning) %&gt;% 
+    summarise(Nh = n()) %&gt;% 
+    mutate(nh = round(n*(Nh/sum(Nh))),
+           factorh = Nh/nh)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>print(tabla_auxiliar)</code></pre>
+<pre><code>## # A tibble: 5 x 4
+##   MSZoning    Nh    nh factorh
+##   &lt;chr&gt;    &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;
+## 1 C (all)     10     1    10  
+## 2 FV          65     4    16.2
+## 3 RH          16     1    16  
+## 4 RL        1151    79    14.6
+## 5 RM         218    15    14.5</code></pre>
+<pre class="r"><code>vector_estratos &lt;- tabla_auxiliar %&gt;% select(MSZoning) %&gt;% pull()
+vector_nh &lt;- tabla_auxiliar %&gt;% select(nh) %&gt;% pull()
+vector_fh &lt;- tabla_auxiliar %&gt;% select(factorh) %&gt;% pull()</code></pre>
+<p>crear un for para hacer muestreo aleatorio simple dentro de cada estrato, o bien, podrían utilizar alguna librería que haga muestras estratificadas.</p>
+<pre class="r"><code>#Incicializar la muestra vacia
+muestra_estratificada &lt;- precios %&gt;% filter(0 == 1)
+k &lt;- length(vector_estratos)
+
+# Fijar semilla
+set.seed(202110)
+for (i in 1:k) {
+  muestra_i &lt;- precios %&gt;% 
+    # Filtrar registros de estrato correspondiente
+    filter(MSZoning == vector_estratos[i]) %&gt;% 
+    # Obtener muestra de tamaño correspondiente
+    sample_n(vector_nh[i]) %&gt;% 
+    # Agregar el factor de expansión
+    mutate(fh = vector_fh[i])
+  
+# Hacer un append a la tabla muestra_estratificada
+muestra_estratificada &lt;- bind_rows(muestra_estratificada, muestra_i)
+}</code></pre>
+<p>Revisar cuantos elementos por estrato fueron seleccionados en la muestra</p>
+<pre class="r"><code>muestra_estratificada %&gt;% group_by(MSZoning) %&gt;% 
+  summarise(nh = n(), promedio_precio = mean(SalePrice))</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre><code>## # A tibble: 5 x 3
+##   MSZoning    nh promedio_precio
+##   &lt;chr&gt;    &lt;int&gt;           &lt;dbl&gt;
+## 1 C (all)      1          40000 
+## 2 FV           4         188300 
+## 3 RH           1          79000 
+## 4 RL          79         185302.
+## 5 RM          15         122300</code></pre>
+<p><strong>Estimación MAS</strong></p>
+<p>Definir diseño</p>
+<pre class="r"><code>disenio_mas &lt;-svydesign(id=~1, weights=~1,data=muestra_estratificada)</code></pre>
+<p>Estimación</p>
+<pre class="r"><code>estimacion_mas &lt;- svymean(~SalePrice,disenio_mas)
+estimacion_mas</code></pre>
+<pre><code>##             mean     SE
+## SalePrice 173455 7580.2</code></pre>
+<p>Intervalo de Confianza</p>
+<pre class="r"><code>confint(estimacion_mas,level=0.95)</code></pre>
+<pre><code>##              2.5 %   97.5 %
+## SalePrice 158598.4 188312.3</code></pre>
+<p><strong>Estimación Muestreo Estratificado</strong></p>
+<p>Notar que tenemos 1 estrato con 1 sola observación. Para estos casos la librería survey por default arroja error, para orzar al usuario a tomar una acción. En nuestro caso será especificarle que ese estrato no contribuya a la varianza. Para mayor detalle de las opciones se puede consultar la sección correspondiente en la página del paquete survey. <a href="http://r-survey.r-forge.r-project.org/survey/exmample-lonely.html">lonely psu</a></p>
+<pre class="r"><code>options(survey.lonely.psu = &quot;certainty&quot;)</code></pre>
+<p>Definir diseño</p>
+<pre class="r"><code>disenio_estratificado &lt;-svydesign(id=~1, strata = ~MSZoning, weights=~fh,data=muestra_estratificada)</code></pre>
+<p>Estimación</p>
+<pre class="r"><code>estimacion_estratificada &lt;- svymean(~SalePrice,disenio_estratificado)
+estimacion_estratificada</code></pre>
+<pre><code>##             mean     SE
+## SalePrice 173868 7051.6</code></pre>
+<p>Intervalo de Confianza</p>
+<pre class="r"><code>confint(estimacion_estratificada,level=0.95)</code></pre>
+<pre><code>##              2.5 %   97.5 %
+## SalePrice 160047.1 187688.7</code></pre>
 </div>
 <div id="construcción-de-los-estratos-a-partir-de-una-variable" class="section level3">
 <h3>Construcción de los estratos a partir de una variable</h3>

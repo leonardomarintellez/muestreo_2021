@@ -1,7 +1,7 @@
 ---
 title: "Tamaño de Muestra"
 author: "LMT"
-date: "11/10/2021"
+date: "octubre de 2021"
 output: html_document
 ---
 
@@ -33,10 +33,153 @@ Asumir n determinada e igual a 100, extraer una muestra estratificada proporcion
 Obtener/Responder lo siguiente:
 
 * La muestra estratificada
-* ¿cuál es su factor de expansión para cada estrato?
+* ¿Cuál es su factor de expansión para cada estrato?
 * Realizar estimación del precio promedio y el error estándar bajo muestreo aleatorio simple
 * Realizar estimación del precio promedio y el error estándar bajo muestreo estratificado
 
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+
+suppressMessages(library(survey))
+```
+
+
+
+```{r}
+precios <- read_csv("/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/datos/HousePrices/HousePrices.csv")
+          
+```
+
+```{r}
+precios %>% summarise(parametro = mean(SalePrice))
+```
+
+
+¿cuántos elementos tenemos en cada estrato?
+
+```{r}
+precios %>% group_by(MSZoning) %>% 
+  summarise(Nh = n(), promedio_precio = mean(SalePrice))
+```
+De acuerdo con la descripción de campos las categorías son:
+
+```{r}
+#MSZoning: Identifies the general zoning classification of the sale.
+		
+#       A	Agriculture
+#       C	Commercial
+#       FV	Floating Village Residential
+#       I	Industrial
+#       RH	Residential High Density
+#       RL	Residential Low Density
+#       RP	Residential Low Density Park 
+#       RM	Residential Medium Density
+```
+
+
+Crear vector de estratos y tamaños de muestra por estrato
+```{r}
+n <- 100
+tabla_auxiliar <- precios %>% group_by(MSZoning) %>% 
+    summarise(Nh = n()) %>% 
+    mutate(nh = round(n*(Nh/sum(Nh))),
+           factorh = Nh/nh)
+
+print(tabla_auxiliar)
+
+vector_estratos <- tabla_auxiliar %>% select(MSZoning) %>% pull()
+vector_nh <- tabla_auxiliar %>% select(nh) %>% pull()
+vector_fh <- tabla_auxiliar %>% select(factorh) %>% pull()
+```
+
+
+crear un for para hacer muestreo aleatorio simple dentro de cada estrato, o bien, podrían utilizar alguna librería que haga muestras estratificadas.
+
+```{r}
+#Incicializar la muestra vacia
+muestra_estratificada <- precios %>% filter(0 == 1)
+k <- length(vector_estratos)
+
+# Fijar semilla
+set.seed(202110)
+for (i in 1:k) {
+  muestra_i <- precios %>% 
+    # Filtrar registros de estrato correspondiente
+    filter(MSZoning == vector_estratos[i]) %>% 
+    # Obtener muestra de tamaño correspondiente
+    sample_n(vector_nh[i]) %>% 
+    # Agregar el factor de expansión
+    mutate(fh = vector_fh[i])
+  
+# Hacer un append a la tabla muestra_estratificada
+muestra_estratificada <- bind_rows(muestra_estratificada, muestra_i)
+}
+
+```
+
+
+Revisar cuantos elementos por estrato fueron seleccionados en la muestra
+
+```{r}
+muestra_estratificada %>% group_by(MSZoning) %>% 
+  summarise(nh = n(), promedio_precio = mean(SalePrice))
+```
+
+**Estimación MAS**
+
+
+Definir diseño
+```{r}
+disenio_mas <-svydesign(id=~1, weights=~1,data=muestra_estratificada)
+```
+
+Estimación
+```{r}
+estimacion_mas <- svymean(~SalePrice,disenio_mas)
+estimacion_mas
+```
+
+Intervalo de Confianza
+```{r}
+confint(estimacion_mas,level=0.95)
+```
+
+
+**Estimación Muestreo Estratificado**
+
+Notar que tenemos 1 estrato con 1 sola observación. Para estos casos la librería survey por default arroja error, para orzar al usuario a tomar una acción. En nuestro caso será especificarle que ese estrato no contribuya a la varianza. Para mayor detalle de las opciones se puede consultar la sección correspondiente en la página del paquete survey. [lonely psu](http://r-survey.r-forge.r-project.org/survey/exmample-lonely.html)
+
+```{r}
+options(survey.lonely.psu = "certainty")
+```
+
+
+Definir diseño
+```{r}
+disenio_estratificado <-svydesign(id=~1, strata = ~MSZoning, weights=~fh,data=muestra_estratificada)
+```
+
+Estimación
+```{r}
+estimacion_estratificada <- svymean(~SalePrice,disenio_estratificado)
+estimacion_estratificada
+```
+
+Intervalo de Confianza
+```{r}
+confint(estimacion_estratificada,level=0.95)
+```
 
 
 
