@@ -183,8 +183,48 @@ confint(estimacion_estratificada,level=0.95)
 
 
 
-### Construcción de los estratos a partir de una variable
+
+Como vimos debemos repartir la muestra disponible en los estratos. Para evitar problemas con la estimación de varianza se necesitan al menos 2 elementos por estrato.
+
+Otros 2 métodos menos utilizados son distribución óptima y método de Neyman que es un caso particular del óptimo cuando los costos son fijos. El método de Neyman asignará más muestra a los estratos donde más se requiera (donde haya más variabilidad). Aunque en con el método de distribución proporcional desperdiciamos muestra en estratos con poca variabilidad, es el más utilizado por su simplicidad
+
+**2. Distribución óptima**
+
+Se hace uso de una función de costos. Estos costos están asociados a los temas operativos.
+
+$$C = c_0 + \Sigma n_h c_h$$
+
+$c_0$ es un costo fijo para todos los estratos. Por ejemplo, llevar a los encuestadores al lugar geografico del estrato.
+$c_h$ es el costo variable en cada estrato. puede ser el costo que tiene realizar 1 encuesta.
+
+Con esto, vemos que se requiere resolver un problema de optimización. Minimizar la varianza total del estimador sujeta a un costo total $C$.
+
+La solución para la distrubución optima está dada por
+
+
+![n óptima](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_dist_optima.png)
+
+**3. Distribución de Neyman**
+
+Cuando los costos son constantes en todos los estratos, entonces el tamaño de muestra para cada estrato es
+
+
+![n Neyman](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_dist_neyman.png)
+
+**pregunta**. ¿Por qué creen que la distribución proporcional es el más usado en la práctica?. 
 
 
 
+### Tamaño de muestra
 
+**Para la media**
+
+Recordemos la idea de querer un intervalo de cierta longitud fijando un margen de error (ó precisión)
+
+
+![tamaño de muestra](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_m_est1.png)
+
+
+**Para el Total**
+
+![tamaño de muestra](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_m_est2.png)

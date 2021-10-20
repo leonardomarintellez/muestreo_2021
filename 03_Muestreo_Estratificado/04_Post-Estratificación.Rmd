@@ -1,0 +1,212 @@
+---
+title: "04_Post-Estratificacion"
+author: "LMT"
+date: "octubre de 2021"
+output: html_document
+---
+
+
+### Post-Estratificación
+
+¿Para qué sirve?. Veamos un ejemplo particular antes de abordar la forma general.
+
+Si intentamos hacer una muestra de 100 para una población de 1,000 y sólo obtenemos respuesta de 76, la fracción de muestreo no es 100/1,000 sino 76/1,000. La corrección al factor de expansión es lo que la post-estratificacion hace.
+
+**pregunta** ¿Qué puede ocasionar datos faltantes en su información?.
+
+**Dos puntos a consderar**. Necesitamos calibrar nuestros factores de expansión para que ajusten con el total poblacional y además nos ayuda a conocer el porcentaje de no respuesta por lo que si habíamos  considerado que requeriamos una población de tamaño n para cumplir con intervalos con cierto nivel de confianza y un margen de error fijado, requeriremos mayor muestra.  ¿cuánta muestra más?. Si revisamos la nota metodológica de encuestas como el Censo o ENIGH veremos que el tamaño de muestra lo ajustan  utilizando la siguiente expresión.
+
+$\text{n ajustada} = \frac{n \cdot deff}{1 - tnr}$
+
+donde $tnr$ es la tasa de no respuesta
+
+De momento  nosotros sólo utilizaremos la tasa de no respuesta. Por lo que nuestro tamaño de muestra para futuros estudios queda de la siguiente manera.
+
+$\text{n ajustada} = \frac{n}{1 - tnr}$
+
+
+Para el ejemplo utilizaemos los datos de personas de aguascalientes del censo de 2010. Consideraremos los datos como nuestro universo (Población) y la variable de municipo como la variable de estrato.
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+
+suppressMessages(library(survey))
+
+library(haven) # Permite leer tablas en formato guardado por SAS
+```
+
+
+Leer datos
+
+```{r}
+personas_01 <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_01_sas/personas_01.sas7bdat", NULL) %>% 
+  # Conservar sólo ciertas variables
+  select(ENT,NOM_ENT, MUN, NOM_MUN, ID_VIV, ID_PER, NUMPER, SEXO, EDAD, PARENT, IDMADRE, NIVACAD, ESCOACUM, ALFABET,NUMHIJ) %>% 
+  # Convertir la edad a númerica
+  mutate(edad_numerica = parse_number(EDAD))
+
+glimpse(personas_01)
+```
+
+¿Cuántas personas hay y cuál es la edad promedio?
+
+```{r}
+personas_01 %>% summarise(num_personas = n_distinct(ID_PER), promedio_edad = mean(edad_numerica), sd_edad = sd(edad_numerica), min_edad = min(edad_numerica), max_edad = max(edad_numerica))
+```
+
+¿Cuál es el número de elementos (personas) por estrato?
+
+```{r}
+personas_01 %>% group_by(ENT,MUN) %>% 
+  summarise(num_personas = n_distinct(ID_PER), promedio_edad = mean(edad_numerica), sd_edad = sd(edad_numerica))
+```
+
+¿Cuánta muestra se necesita si se quisiera estimar la edad promedio con un margen de error de 2 años y para un intervalo de confianza del 90%? 
+
+$$ n >  (\frac{z \cdot s}{me})^2$$
+
+```{r}
+alpha <- 0.10
+z <- qnorm(1-alpha/2)
+me <- 2
+s <- 28.11551	
+```
+
+Notar que el 28.11 incluye los registros donde edad es igual a 999 que corresponde a un valor missing. Se dejo intencionalmente para evidenciar posibles errores al manejar la información.
+
+
+```{r}
+((z*s)/me)**2
+```
+
+Así, nuestra muestra debe ser de `r round(((z*s)/me)**2)`
+
+
+Calcular el tamaño de muestra para cada estrato, así como su factor de expansión correspondiente
+
+El tamao de muestra en cada estrato está dado por 
+
+$n_h = n \frac{N_h}{N} = nW_h$
+
+
+```{r}
+n <- 535
+
+tabla_factores <- personas_01 %>% group_by(ENT,MUN) %>% 
+    summarise(Nh = n()) %>% 
+    mutate(nh = round(n*(Nh/sum(Nh))),
+           factorh = Nh/nh) %>% 
+  ungroup()
+
+print(tabla_factores)
+
+```
+
+
+Seleccionemos una muestra estratificada
+
+```{r}
+
+vector_estratos <- tabla_factores %>% select(MUN) %>% pull()
+vector_nh <- tabla_factores %>% select(nh) %>% pull()
+vector_fh <- tabla_factores %>% select(factorh) %>% pull()
+
+
+#Incicializar la muestra vacia
+muestra_estratificada <- personas_01 %>% filter(0 == 1)
+k <- length(vector_estratos)
+
+# Fijar semilla
+set.seed(2021)
+for (i in 1:k) {
+  muestra_i <- personas_01 %>% 
+    # Filtrar registros de estrato correspondiente
+    filter(MUN == vector_estratos[i]) %>% 
+    # Obtener muestra de tamaño correspondiente
+    sample_n(vector_nh[i]) %>% 
+    # Agregar el factor de expansión
+    mutate(fh = vector_fh[i])
+  
+# Hacer un append a la tabla muestra_estratificada
+muestra_estratificada <- bind_rows(muestra_estratificada, muestra_i)
+}
+
+```
+
+```{r}
+dim(muestra_estratificada)
+head(muestra_estratificada)
+```
+
+
+Simulareros una **no respuesta** del 16% en total por lo que sólo tendremos unas 480 encuestas útiles. El 16% es bastante alto, pero es para ejemplificar como se ven afectados los factores de expansión
+
+```{r}
+set.seed(1234)
+datos_encuestas <- muestra_estratificada %>% 
+                  select(ENT,MUN,ID_PER,SEXO,edad_numerica,fh) %>% 
+                  mutate(u = runif(sum(vector_nh)),
+                         edad_encuesta = ifelse(u < 0.16 | edad_numerica == 999,NA,edad_numerica))
+
+head(datos_encuestas, n = 10)
+```
+
+Obtener el número de encuestas con missings
+
+```{r}
+tabla_missings <- datos_encuestas %>% 
+                  group_by(ENT,MUN) %>% 
+                  summarise(num_encuestas = n(), num_missings = sum(is.na(edad_encuesta)), num_validos = sum(!is.na(edad_encuesta)))
+  
+tabla_missings
+```
+
+Por la forma del ejemplo, tenemos que desechar las encuentas con missings en la variable de nuestro interés que es la edad. De un esperaro de 535 nos quedamos con 455 encuestas válidas.
+
+```{r}
+datos_encuestas_ok <- datos_encuestas %>% filter(!is.na(edad_encuesta))
+dim(datos_encuestas_ok)
+```
+
+
+Necesitamos _calibrar_ nuestros factores de expansión para que la muestra expanda el total, en este caso personas.
+
+```{r}
+tabla_calibracion <- left_join(tabla_factores,tabla_missings, by = c("ENT","MUN")) %>% 
+                      #calibración
+                      mutate(fh_ajustado = Nh / num_validos)
+
+glimpse(tabla_calibracion)
+```
+
+**Ejercicio**. Pegarle los factores ajustados a los `datos_encuestas_ok` y corroborar que los factores expanden la muestra
+
+
+```{r echo= FALSE}
+tabla_calibracion %>% summarise(total = sum(num_validos*fh_ajustado))
+```
+
+
+**Ejercicio**. tomar la tabla `datos_encuestas_ok` y hacer la estimación de la edad promedio con su intervalo de confianza.
+
+
+Haciendo la consideración de que puede haber no respuesta, ajustariamos el tamaño de muestra. Con lo que para nuestro ejemplo con esa _tnr_ tan alta necesitariamos que la $n$ fuera de 637.
+
+```{r}
+535/(1-0.16)
+```
+
+
+Notar que el tamaño de muestra se calculó bajo muestreo aleatorio simple y no bajo muestreo estratificado, se debe hacer el ajuste. 
+
+
+
