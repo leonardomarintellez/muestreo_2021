@@ -208,5 +208,44 @@ Haciendo la consideración de que puede haber no respuesta, ajustariamos el tama
 
 Notar que el tamaño de muestra se calculó bajo muestreo aleatorio simple y no bajo muestreo estratificado, se debe hacer el ajuste. 
 
+¿Cómo esperan que sea el tamaño de muestra?. ¿menor?, ¿mayor?
 
+Ocupemos la fórmula para el tamaño de muestra para la media bajo muestreo estratificado
+
+
+$$n = \frac{N \Sigma_h N_h S^2_h}{N^2 \frac{\delta^2}{z^2_{1-\frac{\alpha}{2}}} + \Sigma_h N_h S^2_h}$$
+
+```{r}
+
+tabla_Sh2 <- personas_01 %>% group_by(ENT,MUN) %>% 
+    summarise(Nh = n(), Sh2 = var(edad_numerica)) %>% 
+    ungroup()
+
+print(tabla_Sh2)
+
+```
+
+
+```{r}
+alpha <- 0.10
+z <- qnorm(1-alpha/2)
+d <- 2
+
+N <- tabla_Sh2 %>% summarise(N = sum(Nh)) %>% select(N) %>% pull()
+
+componentes_n <- tabla_Sh2 %>% summarise(numerador = N*sum(Nh*(Sh2)), 
+                                         denominador = (N**2)*((d/z)**2) + sum(Nh*(Sh2))) %>% 
+                mutate(n = numerador / denominador)
+  
+n <- componentes_n %>% select(n) %>% pull()
+print(componentes_n)
+```
+
+Con esto vemos que la n disminuye poco más de 5 unidades
+
+**Pregunta** Si les dijera que el tamaño de muestra será 800. 
+
+1. Dejando fija la confianza, ¿qué valor de margen de error dariían?. En otras palabras, ¿qué margen de error pueden garantizar con una muestra de 800?
+2. Dejando fijo el margen de error ¿qué valor de confianza darían?
+3. ¿Cuál sería su elección de confianza y margen de error que propondrían?
 

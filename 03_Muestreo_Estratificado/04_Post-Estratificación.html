@@ -451,6 +451,188 @@ s &lt;- 28.11551   </code></pre>
 <pre class="r"><code>((z*s)/me)**2</code></pre>
 <pre><code>## [1] 534.6708</code></pre>
 <p>Así, nuestra muestra debe ser de 535</p>
+<p>Calcular el tamaño de muestra para cada estrato, así como su factor de expansión correspondiente</p>
+<p>El tamao de muestra en cada estrato está dado por</p>
+<p><span class="math inline">\(n_h = n \frac{N_h}{N} = nW_h\)</span></p>
+<pre class="r"><code>n &lt;- 535
+
+tabla_factores &lt;- personas_01 %&gt;% group_by(ENT,MUN) %&gt;% 
+    summarise(Nh = n()) %&gt;% 
+    mutate(nh = round(n*(Nh/sum(Nh))),
+           factorh = Nh/nh) %&gt;% 
+  ungroup()</code></pre>
+<pre><code>## `summarise()` regrouping output by 'ENT' (override with `.groups` argument)</code></pre>
+<pre class="r"><code>print(tabla_factores)</code></pre>
+<pre><code>## # A tibble: 11 x 5
+##    ENT   MUN      Nh    nh factorh
+##    &lt;chr&gt; &lt;chr&gt; &lt;int&gt; &lt;dbl&gt;   &lt;dbl&gt;
+##  1 01    001   25638   196    131.
+##  2 01    002    5408    41    132.
+##  3 01    003    4572    35    131.
+##  4 01    004    4757    36    132.
+##  5 01    005    4593    35    131.
+##  6 01    006    4657    36    129.
+##  7 01    007    4881    37    132.
+##  8 01    008    3583    27    133.
+##  9 01    009    2816    22    128 
+## 10 01    010    4320    33    131.
+## 11 01    011    4579    35    131.</code></pre>
+<p>Seleccionemos una muestra estratificada</p>
+<pre class="r"><code>vector_estratos &lt;- tabla_factores %&gt;% select(MUN) %&gt;% pull()
+vector_nh &lt;- tabla_factores %&gt;% select(nh) %&gt;% pull()
+vector_fh &lt;- tabla_factores %&gt;% select(factorh) %&gt;% pull()
+
+
+#Incicializar la muestra vacia
+muestra_estratificada &lt;- personas_01 %&gt;% filter(0 == 1)
+k &lt;- length(vector_estratos)
+
+# Fijar semilla
+set.seed(2021)
+for (i in 1:k) {
+  muestra_i &lt;- personas_01 %&gt;% 
+    # Filtrar registros de estrato correspondiente
+    filter(MUN == vector_estratos[i]) %&gt;% 
+    # Obtener muestra de tamaño correspondiente
+    sample_n(vector_nh[i]) %&gt;% 
+    # Agregar el factor de expansión
+    mutate(fh = vector_fh[i])
+  
+# Hacer un append a la tabla muestra_estratificada
+muestra_estratificada &lt;- bind_rows(muestra_estratificada, muestra_i)
+}</code></pre>
+<pre class="r"><code>dim(muestra_estratificada)</code></pre>
+<pre><code>## [1] 533  17</code></pre>
+<pre class="r"><code>head(muestra_estratificada)</code></pre>
+<pre><code>## # A tibble: 6 x 17
+##   ENT   NOM_ENT MUN   NOM_MUN ID_VIV ID_PER NUMPER SEXO  EDAD  PARENT
+##   &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt; &lt;chr&gt;   &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt;  &lt;chr&gt; &lt;chr&gt; &lt;chr&gt; 
+## 1 01    Aguasc… 001   Aguasc… 23922… 09396… 00006  1     008   03    
+## 2 01    Aguasc… 001   Aguasc… 18861… 07418… 00002  3     052   02    
+## 3 01    Aguasc… 001   Aguasc… 25315… 09944… 00001  1     044   01    
+## 4 01    Aguasc… 001   Aguasc… 13739… 05429… 00001  1     050   01    
+## 5 01    Aguasc… 001   Aguasc… 18062… 07108… 00001  3     022   01    
+## 6 01    Aguasc… 001   Aguasc… 13778… 05444… 00004  3     022   03    
+## # … with 7 more variables: IDMADRE &lt;chr&gt;, NIVACAD &lt;chr&gt;, ESCOACUM &lt;chr&gt;,
+## #   ALFABET &lt;chr&gt;, NUMHIJ &lt;chr&gt;, edad_numerica &lt;dbl&gt;, fh &lt;dbl&gt;</code></pre>
+<p>Simulareros una <strong>no respuesta</strong> del 16% en total por lo que sólo tendremos unas 480 encuestas útiles. El 16% es bastante alto, pero es para ejemplificar como se ven afectados los factores de expansión</p>
+<pre class="r"><code>set.seed(1234)
+datos_encuestas &lt;- muestra_estratificada %&gt;% 
+                  select(ENT,MUN,ID_PER,SEXO,edad_numerica,fh) %&gt;% 
+                  mutate(u = runif(sum(vector_nh)),
+                         edad_encuesta = ifelse(u &lt; 0.16 | edad_numerica == 999,NA,edad_numerica))
+
+head(datos_encuestas, n = 10)</code></pre>
+<pre><code>## # A tibble: 10 x 8
+##    ENT   MUN   ID_PER    SEXO  edad_numerica    fh       u edad_encuesta
+##    &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;     &lt;chr&gt;         &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;         &lt;dbl&gt;
+##  1 01    001   093967397 1                 8  131. 0.114              NA
+##  2 01    001   074188011 3                52  131. 0.622              52
+##  3 01    001   099449678 1                44  131. 0.609              44
+##  4 01    001   054296325 1                50  131. 0.623              50
+##  5 01    001   071083190 3                22  131. 0.861              22
+##  6 01    001   054447313 3                22  131. 0.640              22
+##  7 01    001   092205327 1                25  131. 0.00950            NA
+##  8 01    001   094654534 3                30  131. 0.233              30
+##  9 01    001   014706294 3                63  131. 0.666              63
+## 10 01    001   096671429 1                 2  131. 0.514               2</code></pre>
+<p>Obtener el número de encuestas con missings</p>
+<pre class="r"><code>tabla_missings &lt;- datos_encuestas %&gt;% 
+                  group_by(ENT,MUN) %&gt;% 
+                  summarise(num_encuestas = n(), num_missings = sum(is.na(edad_encuesta)), num_validos = sum(!is.na(edad_encuesta)))</code></pre>
+<pre><code>## `summarise()` regrouping output by 'ENT' (override with `.groups` argument)</code></pre>
+<pre class="r"><code>tabla_missings</code></pre>
+<pre><code>## # A tibble: 11 x 5
+## # Groups:   ENT [1]
+##    ENT   MUN   num_encuestas num_missings num_validos
+##    &lt;chr&gt; &lt;chr&gt;         &lt;int&gt;        &lt;int&gt;       &lt;int&gt;
+##  1 01    001             196           35         161
+##  2 01    002              41            3          38
+##  3 01    003              35            7          28
+##  4 01    004              36            2          34
+##  5 01    005              35            3          32
+##  6 01    006              36            5          31
+##  7 01    007              37            5          32
+##  8 01    008              27            3          24
+##  9 01    009              22            2          20
+## 10 01    010              33            7          26
+## 11 01    011              35            6          29</code></pre>
+<p>Por la forma del ejemplo, tenemos que desechar las encuentas con missings en la variable de nuestro interés que es la edad. De un esperaro de 535 nos quedamos con 455 encuestas válidas.</p>
+<pre class="r"><code>datos_encuestas_ok &lt;- datos_encuestas %&gt;% filter(!is.na(edad_encuesta))
+dim(datos_encuestas_ok)</code></pre>
+<pre><code>## [1] 455   8</code></pre>
+<p>Necesitamos <em>calibrar</em> nuestros factores de expansión para que la muestra expanda el total, en este caso personas.</p>
+<pre class="r"><code>tabla_calibracion &lt;- left_join(tabla_factores,tabla_missings, by = c(&quot;ENT&quot;,&quot;MUN&quot;)) %&gt;% 
+                      #calibración
+                      mutate(fh_ajustado = Nh / num_validos)
+
+glimpse(tabla_calibracion)</code></pre>
+<pre><code>## Rows: 11
+## Columns: 9
+## $ ENT           &lt;chr&gt; &quot;01&quot;, &quot;01&quot;, &quot;01&quot;, &quot;01&quot;, &quot;01&quot;, &quot;01&quot;, &quot;01&quot;, &quot;01&quot;, &quot;0…
+## $ MUN           &lt;chr&gt; &quot;001&quot;, &quot;002&quot;, &quot;003&quot;, &quot;004&quot;, &quot;005&quot;, &quot;006&quot;, &quot;007&quot;, &quot;…
+## $ Nh            &lt;int&gt; 25638, 5408, 4572, 4757, 4593, 4657, 4881, 3583, 2…
+## $ nh            &lt;dbl&gt; 196, 41, 35, 36, 35, 36, 37, 27, 22, 33, 35
+## $ factorh       &lt;dbl&gt; 130.8061, 131.9024, 130.6286, 132.1389, 131.2286, …
+## $ num_encuestas &lt;int&gt; 196, 41, 35, 36, 35, 36, 37, 27, 22, 33, 35
+## $ num_missings  &lt;int&gt; 35, 3, 7, 2, 3, 5, 5, 3, 2, 7, 6
+## $ num_validos   &lt;int&gt; 161, 38, 28, 34, 32, 31, 32, 24, 20, 26, 29
+## $ fh_ajustado   &lt;dbl&gt; 159.2422, 142.3158, 163.2857, 139.9118, 143.5312, …</code></pre>
+<p><strong>Ejercicio</strong>. Pegarle los factores ajustados a los <code>datos_encuestas_ok</code> y corroborar que los factores expanden la muestra</p>
+<pre><code>## # A tibble: 1 x 1
+##   total
+##   &lt;dbl&gt;
+## 1 69804</code></pre>
+<p><strong>Ejercicio</strong>. tomar la tabla <code>datos_encuestas_ok</code> y hacer la estimación de la edad promedio con su intervalo de confianza.</p>
+<p>Haciendo la consideración de que puede haber no respuesta, ajustariamos el tamaño de muestra. Con lo que para nuestro ejemplo con esa <em>tnr</em> tan alta necesitariamos que la <span class="math inline">\(n\)</span> fuera de 637.</p>
+<pre class="r"><code>535/(1-0.16)</code></pre>
+<pre><code>## [1] 636.9048</code></pre>
+<p>Notar que el tamaño de muestra se calculó bajo muestreo aleatorio simple y no bajo muestreo estratificado, se debe hacer el ajuste.</p>
+<p>¿Cómo esperan que sea el tamaño de muestra?. ¿menor?, ¿mayor?</p>
+<p>Ocupemos la fórmula para el tamaño de muestra para la media bajo muestreo estratificado</p>
+<p><span class="math display">\[n = \frac{N \Sigma_h N_h S^2_h}{N^2 \frac{\delta^2}{z^2_{1-\frac{\alpha}{2}}} + \Sigma_h N_h S^2_h}\]</span></p>
+<pre class="r"><code>tabla_Sh2 &lt;- personas_01 %&gt;% group_by(ENT,MUN) %&gt;% 
+    summarise(Nh = n(), Sh2 = var(edad_numerica)) %&gt;% 
+    ungroup()</code></pre>
+<pre><code>## `summarise()` regrouping output by 'ENT' (override with `.groups` argument)</code></pre>
+<pre class="r"><code>print(tabla_Sh2)</code></pre>
+<pre><code>## # A tibble: 11 x 4
+##    ENT   MUN      Nh   Sh2
+##    &lt;chr&gt; &lt;chr&gt; &lt;int&gt; &lt;dbl&gt;
+##  1 01    001   25638  699.
+##  2 01    002    5408  917.
+##  3 01    003    4572  893.
+##  4 01    004    4757  583.
+##  5 01    005    4593 1991.
+##  6 01    006    4657  594.
+##  7 01    007    4881  961.
+##  8 01    008    3583  972.
+##  9 01    009    2816  371.
+## 10 01    010    4320  381.
+## 11 01    011    4579  536.</code></pre>
+<pre class="r"><code>alpha &lt;- 0.10
+z &lt;- qnorm(1-alpha/2)
+d &lt;- 2
+
+N &lt;- tabla_Sh2 %&gt;% summarise(N = sum(Nh)) %&gt;% select(N) %&gt;% pull()
+
+componentes_n &lt;- tabla_Sh2 %&gt;% summarise(numerador = N*sum(Nh*(Sh2)), 
+                                         denominador = (N**2)*((d/z)**2) + sum(Nh*(Sh2))) %&gt;% 
+                mutate(n = numerador / denominador)
+  
+n &lt;- componentes_n %&gt;% select(n) %&gt;% pull()
+print(componentes_n)</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   numerador denominador     n
+##       &lt;dbl&gt;       &lt;dbl&gt; &lt;dbl&gt;
+## 1   3.84e12 7258840822.  529.</code></pre>
+<p>Con esto vemos que la n disminuye poco más de 5 unidades</p>
+<p><strong>Pregunta</strong> Si les dijera que el tamaño de muestra será 800.</p>
+<ol style="list-style-type: decimal">
+<li>Dejando fija la confianza, ¿qué valor de margen de error dariían?. En otras palabras, ¿qué margen de error pueden garantizar con una muestra de 800?</li>
+<li>Dejando fijo el margen de error ¿qué valor de confianza darían?</li>
+<li>¿Cuál sería su elección de confianza y margen de error que propondrían?</li>
+</ol>
 </div>
 
 

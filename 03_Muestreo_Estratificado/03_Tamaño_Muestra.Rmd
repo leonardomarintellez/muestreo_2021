@@ -228,3 +228,13 @@ Recordemos la idea de querer un intervalo de cierta longitud fijando un margen d
 **Para el Total**
 
 ![tamaño de muestra](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/n_m_est2.png)
+
+
+A continuación se muestra el detalle de como se llega al tamaño de muestra para la media en muestreo estratificado
+
+
+![n](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/dem_tam_n1.png)
+
+![n](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/dem_tam_n2.png)
+
+![n](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/dem_tam_n3.png)
