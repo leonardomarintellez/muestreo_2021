@@ -234,7 +234,7 @@ d <- 2
 N <- tabla_Sh2 %>% summarise(N = sum(Nh)) %>% select(N) %>% pull()
 
 componentes_n <- tabla_Sh2 %>% summarise(numerador = N*sum(Nh*(Sh2)), 
-                                         denominador = (N**2)*((d/z)**2) + sum(Nh*(Sh2))) %>% 
+                                         denominador = (N**2)*((d**2/z**2))+ sum(Nh*(Sh2))) %>% 
                 mutate(n = numerador / denominador)
   
 n <- componentes_n %>% select(n) %>% pull()
@@ -248,4 +248,282 @@ Con esto vemos que la n disminuye poco más de 5 unidades
 1. Dejando fija la confianza, ¿qué valor de margen de error dariían?. En otras palabras, ¿qué margen de error pueden garantizar con una muestra de 800?
 2. Dejando fijo el margen de error ¿qué valor de confianza darían?
 3. ¿Cuál sería su elección de confianza y margen de error que propondrían?
+
+
+Una de las soluciones más sencillas es usar **goal seek** en excel, sobre todo si la fórmula no tiene una expresión analítica que pueda despejarse, sólo necesitamos exportar la tabla `tabla_Sh2` calculada previavente para facilitar las operaciones.
+
+En ese caso particular, podemos despejar alguna de las variables, fijar el tamaño de muestra e iterar sobre el otro parametro para ver las combinaciones que arrojan el tamaño de muestra fijado.
+
+Utilizaremos una función auxiliar para iterar sobre dicha función. El parámetro que la función recibirá es alpha y nos regresará el valor de delta para una n fijada en 800
+
+```{r}
+funcion_delta <- function(alpha) {
+  
+  #alpha <- 0.10
+  z <- qnorm(1-alpha/2)
+  n <- 800
+  #d <- 2
+  
+  N <- tabla_Sh2 %>% summarise(N = sum(Nh)) %>% select(N) %>% pull()
+  
+  calculo <- tabla_Sh2 %>% summarise(d = ((N/n - 1)*sum(Nh*(Sh2)))*(z**2)/(N**2)) 
+  
+  d <- calculo %>% select(d) %>% pull()
+  return(sqrt(d))
+  
+}
+
+```
+
+Iteramos sobre distintos valores de alpha
+```{r}
+vector_alphas <- seq(from = 0.001, to = 0.20, by = 0.001)
+vector_deltas <- vector(length = length(vector_alphas))
+
+for(i in 1:length(vector_alphas)) { 
+  vector_deltas[i] <- funcion_delta(vector_alphas[i])}
+
+```
+
+Graficamos
+```{r}
+datos_delta_vs_alpha <- data.frame(alpha = vector_alphas, delta =vector_deltas) %>% 
+  mutate(confianza = 1 - alpha)
+head(datos_delta_vs_alpha)
+```
+
+
+```{r}
+ggplot(datos_delta_vs_alpha) +
+  geom_point(mapping = aes(x = delta, y= confianza), alpha = 0.65 ) + 
+  scale_x_continuous(limits = c(0,4))
+```
+
+Si nos interesara algun valor particular de confianza o delta podemos filtrar para conocer los valores excatos de los parámetros involucrados
+
+```{r}
+datos_delta_vs_alpha %>% filter(confianza %in% c(0.90,0.95,0.99))
+```
+
+
+### Post Estratificación
+
+En lagunos casos se querrá que las frecuencias de variables importantes en la muestra sean más representativas y por ello se ajustan los factores de expansión para qué tomen en cuenta las proporciones poblacionales de las variables catégoricas de mayor interés.
+
+Se conocen las frecuencias de cada categoría en la población, los factores de expansión se ajustan para coincidir con esas frecuencias.
+
+La post-estratificación es un procedimiento similar a la estratificación, con la diferencia de que es realizada después de haber obtenido los resultados de las encuestas, es decir, una vez que ya contamos con los datos obtenidos de campo.
+
+Consiste en la creación de nuevos grupos llamados post-estratos, se utiliza para corregir los efectos de la no respuesta o para afinar (ajustar) los factores de expansión.
+
+Para calcular el factor de cada post-estrato se puede tomar la siguiente fórmula
+
+$\text{factor post} = \frac{N_h}{n_m}$
+
+notar que  $n_m$ se refiere al número de elementos de la muestra que fueron efectivamente recabados de la labor de campo. $N_h$ es el número de elementos de la población en el estrato h
+
+
+Por ejemplo, consideremos hacer post-estratificación de la variable sexo. El número de elementos por sexo en la población es
+```{r}
+personas_01 %>% group_by(SEXO) %>%  summarise(Freq = n())
+```
+
+
+Tomar una muestra de 800
+```{r}
+N <- dim(personas_01)[1]
+
+set.seed(123)
+muestra_mas <- personas_01 %>% 
+              sample_n(800) %>% 
+              # crear la variable de factor de expasión
+              mutate(factor_mas = N/800, fpc = 800/N)
+
+#glimpse(muestra_mas)
+```
+
+Validar el factor de expansión
+```{r}
+muestra_mas %>% summarise(Total = sum(factor_mas))
+```
+
+Revisar el total para hombres y mujeres
+```{r}
+muestra_mas %>% group_by(SEXO) %>% summarise(Total = sum(factor_mas))
+```
+
+Como vemos, los factores expanden correctamente el total de la población, pero no es así para la variable sexo. 
+
+¿Cuál es el factor de expansión de cada elemento?. ¿Cómo se ajustarían los factores si quisieramos que los subtotales (marginales) por sexo coincidieran con los de la población?
+
+```{r}
+Nh <- personas_01 %>% group_by(SEXO) %>%  summarise(Freq = n()) %>% select(Freq) %>% pull()
+nh <- muestra_mas %>% group_by(SEXO) %>% summarise(nh = n()) %>% select(nh) %>% pull()
+
+Nh/nh
+```
+
+Estos serían los nuevos factores de la variable sexo para las categorías 1 y 3 respectivamente, mientras que el factor original era 87.255 
+
+¿Cómo hubieran quedado los factores si inicialmente se hubiera planteado estratificar por sexo?
+
+
+Crear vector de estratos y tamaños de muestra por estrato
+```{r}
+n <- 800
+tabla_auxiliar <- personas_01 %>% group_by(SEXO) %>% 
+    summarise(Nh = n()) %>% 
+    mutate(nh = round(n*(Nh/sum(Nh))),
+           factorh = Nh/nh)
+
+print(tabla_auxiliar)
+
+```
+
+Recapitulando, ¿qué diferencia hay entre estratificar y post-estratificar?
+
+---
+
+La librería survey en R nos permite hacer post-estratificación con la función `postStratify`
+
+Se debe definir el diseño
+
+```{r}
+disenio_mas <- svydesign( id =~1, data = muestra_mas, weights = ~factor_mas , fpc = ~fpc)
+```
+
+Se debe definir la  tabla con los valores poblacionales
+
+```{r}
+totales_poblacion_sexo <- personas_01 %>% group_by(SEXO) %>% summarise(Freq = n())
+```
+
+
+La función generará un objeto con el diseño ajustado por la post-estratificación con los pesos correspondientes
+```{r}
+post_est_design <- 
+  postStratify(
+  	disenio_mas , # diseño 
+		strata = ~SEXO , #variable de estratificación
+		population = totales_poblacion_sexo # Tabla con valores poblacionales para la variable de estratificación
+	)
+	
+```
+
+El elemento postStrata del objeto creado por la función `postStratify` contiene los pesos originales y los pesos ajustados
+```{r}
+x_post <- post_est_design$postStrata[[1]]
+oldweights_post <- attributes(x_post)$oldweights %>% as.vector()
+weights_post <- attributes(x_post)$weights %>% as.vector()
+```
+
+```{r}
+table(weights_post,oldweights_post)
+```
+
+
+Se pueden hacer estimaciones usando el nuevo objeto del diseño con los factores ajustados
+```{r}
+svyby(~edad_numerica, ~SEXO, post_est_design, svymean)
+```
+
+Agregarle los pesos de posst-estratificación a la muestra
+
+```{r}
+# glimpse(muestra_mas)
+muestra_mas2 <- muestra_mas %>% 
+                mutate(factor_post = weights_post)
+```
+
+
+```{r}
+muestra_mas2 %>% group_by(SEXO,factor_mas,factor_post) %>% summarise(n = n())
+```
+
+
+
+**Raking**
+
+El ajuste anterior se puede ver como una tabla de contingencia donde cada celda representa un post-estrato y para hacer el ajuste es necesario se en la muestra salgan seleccionados elementos que caigan en cada categoría. 
+
+Se han desarrollado algotitmos iterativos que ajustan los pesos sin necesidad de tener información de cada celda, se usan los totales marginales,  donde se itera hasta la convergencia de los totales objetivo de las variables marginales.
+
+Revisar el algoritmo raking para conocer mayor detalle.
+
+Realizaremos un ejemplo con la versión del algoritmo implementada en el paquete survey
+
+Definir tabla con los valores poblacionales
+
+```{r}
+totales_poblacion_sexo <- personas_01 %>% group_by(SEXO) %>% summarise(Freq = n())
+totales_poblacion_alfabet <- personas_01 %>% group_by(ALFABET) %>% summarise(Freq = n())
+```
+
+
+```{r}
+rake_design <- 
+  rake(
+  	disenio_mas ,
+		sample = list(~SEXO, ~ALFABET) ,
+		population = list(totales_poblacion_sexo, totales_poblacion_alfabet)
+	)
+	
+```
+
+
+Totales poblacionales
+
+```{r}
+personas_01 %>% group_by(ALFABET) %>% summarise( total = n())
+personas_01 %>% group_by(ALFABET) %>% summarise( total = n())
+```
+
+
+Estimar totales
+
+
+Sin post estratificación
+```{r}
+svytotal(~SEXO+ALFABET,disenio_mas)
+```
+
+
+vemos como se ajustaron los pesos
+
+```{r}
+x_rake <- rake_design$postStrata[[1]][[1]]
+#oldweights_rake <- attributes(x_rake)$oldweights %>% as.vector()
+weights_rake <- attributes(x_rake)$weights %>% as.vector()
+```
+
+```{r}
+data.frame(weights_rake) %>% group_by(weights_rake) %>% summarise(n = n())
+```
+
+
+
+Agregarle los pesos de la función rake rake a la muestra
+
+```{r}
+# glimpse(muestra_mas)
+muestra_mas3 <- muestra_mas %>% 
+                mutate(factor_rake = weights_rake)
+```
+
+
+```{r}
+muestra_mas3 %>% group_by(SEXO,ALFABET,factor_mas,factor_rake) %>% summarise(n = n())
+```
+
+
+
+**inconvenientes de la post-estratificación**
+
+- En casos muy particulares se pueden tener pesos muy fuertes
+
+
+
+
+
+
 
