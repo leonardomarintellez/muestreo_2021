@@ -10,7 +10,7 @@
 * Enviar solución al mail: leonardo.marintellez@gmail.com y en el asunto poner **muestreo2021_tarea09**
 
 
-El objeivo de la tarea es que resulevan ejemplos prácticos de manipulación de datos dado que es muy común que al trabajr con datos una parte de importante del tiempo se lo lleva el preprocesamiento de los mismos.
+El objeivo de la tarea es que resulevan ejemplos prácticos de manipulación de datos dado que es muy común que al trabajr con datos una parte importante del tiempo se lo lleva el preprocesamiento de los mismos.
 
 
 
@@ -32,14 +32,14 @@ Utilizar los datos de [ratings de películas](https://github.com/leonardomarinte
 
 Para el siguiente punto intenten resolver la parte de identificar el año usando expresiones regulares (regular expressions).
 
-- Calcular el número de pelícilas por año
+- Calcular el número de películas por año
 
 Noten que para resolver un par de puntos deben unir la información de las tablas _data_ e _item_
 
 
 **Ejercicio 3**
 
-Utilizar los datos del [censo 2010](https://github.com/leonardomarintellez/muestreo_2021/tree/master/datos/censo_2010) de la tabla de persnas del Estado de México para crear una grafica de dispersión de la edad de la persona vs la edad de su madre. Para identificar las variables que les ayudarán para este ejercicio consulten el diccionario de del cuestionario ubicado en el mismo vínculo que los datos. No a todas las personass podrán asignarles la edad de su madre, sólo conserven os registros donde tengan dato tanto de la persona como de su madre.
+Utilizar los datos del [censo 2010](https://github.com/leonardomarintellez/muestreo_2021/tree/master/datos/censo_2010) de la tabla de personas del Estado de México para crear una grafica de dispersión de la edad de la persona vs la edad de su madre. Para identificar las variables que les ayudarán para este ejercicio consulten el diccionario del cuestionario ubicado en el mismo vínculo que los datos. No a todas las personass podrán asignarles la edad de su madre, sólo conserven los registros donde tengan dato tanto de la persona como de su madre.
 
 
 
