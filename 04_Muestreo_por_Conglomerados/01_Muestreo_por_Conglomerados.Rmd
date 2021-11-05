@@ -1,0 +1,159 @@
+---
+title: "Muestreo por Conglomerados"
+author: "LMT"
+date: "noviembre de 2021"
+output: html_document
+---
+
+## Muestreo por Conglomerados
+
+Un **conglomerado** es un conjunto de elementos de la población. 
+
+Una muestra por conglomerados es una muestra aleatoria en la cual cada unidad muestral es un conglomerado de elementos.
+
+
+
+
+![conglomerados](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/imagen_clusters.png)
+
+En contraste con el muestreo estratificado, en los conglomerados nos interesa que estos sean homogeneos y los elementos dentro de ellos sean heterogeneos.
+
+
+Ejemplo. Realizar una muestra aleatoria de 600 casas de una ciudad genera una muestra más representativa de la ciudad que seleccionar 20 manzanas dentro de la ciudad y tomar una muestra de 30 casas de cada manzana, pero es más costoso el primer diseño.
+
+
+Del ejemplo anterior, notamos que el muestreo por conglomerados se utiliza como una herramienta para solucionar problemas practicos del muestreo. Es importante señalar que no mejoramos las estimaciones, debido a que aumenta la variabilidad de nuestro estimador.
+
+
+El muestreo  por conglomerados disminuye la prescisión, pero permite incementar la muestra porque ayuda a reducir el costo.
+
+**Razones para usar conglomerados**:
+
+- No existe un marco de elementos o es muy costososo construirlos.
+- Hacer muestreo por conglomerados es menos costoso que un muestreo aleatorio simple de elementos.
+
+Ejemplo donde no se tiene un marco. La población objetivo es el número de personas 'desocupadas' de la Ciudad de México.
+
+El diseño más secillo de muestreo por conglomerados es en una etapa y consiste en 
+
+1. La población se agrupa en conglomerados
+2. Se selecciona una muestra de los conglomerados
+3. Todos los elementos en los conglomerados son encuestados
+
+Nota. Los elementos individuales de la población solamente pueden participar en la muestra si pertenecen a un conglomerado elegido en la muestra. Un individuo debe pertenecer únicamente  a solo 1 conglomerado.
+
+**Notación**
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_1etapa_1.png)
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_1etapa_2.png)
+
+Conglomerar suele traer complicaciones en la estimación de la varianza porque el total de la población puede ser desconocido en muestras donde se requiere conglomerar.
+
+**Tamaño de los conglomerados**
+
+En algunas situaciones el tamaño de los conglomerados está dado y en otros casos nosotros definimos el tamaño de los conglomerados. 
+
+Consideraciones:
+
+- Pocos conglomerados grande. Resulta en menor costo.
+- Muchos conglomerados pequeños. Se tiene mayor control de la variabilidad.  
+
+Es conveniente lograr un balance entre tamaño y número de conglomerados.
+
+## Muestreo por conglomerados en 2 etapas 
+
+Los diseños que hemos vistos son en 1 etapa, es decir, hacemos muestreo directamente de elementos. No obstante, como ya comentamos, en ocasiones lo anterior no es viable o es impractico por la disponibilidad del marco muestral. Por ejemplo acceso a una comunidad en la sierra o selva. Otra razón es si la población de elementos está muy dispersa geografiacmente  y los costos operativos del levantamiento de campo serían muy costosos.
+
+A diferencia de 1 etapa, en este diseño se realiza una muestra de elementos dentro de los conglomerados.
+Dado que perdemos precisión al conglomerar para controlar costos. Hace sentido muestrear dentro de los conglomerados para aumentar el número de conglomerados. Se debe estimar el total de cada conglomerado con submuestras.
+
+En el muestreo en 2 etapas hay 2 fuentes de variación. La primera de la selección de las UPMs y la segunda de las USMs dentro de las UPMs
+
+Definimos el muestreo en 2 etapas de la siguiente manera:
+
+1. Se extrae una muestra aleatoria de UPMs (unidades primarias de muestreo)
+2. Para cada UPM, se extrae una muestra de elementos.
+
+
+Es de señalar que se hace el supuesto de independencia, es decir, el muestreo dentro de cada UPM es independiente de las demás UPMs.
+
+Para el cálculo de la varianza bajo muestreo por conglomerados, es necesario tomar en cuenta la variabilidad entre las UPMs y también entre las USMs.
+
+**Notación**
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_2etapas_1.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_2etapas_2.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_2etapas_3.png)
+
+![notas](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_2etapas_4.png)
+
+
+
+
+**Estimador del Total**
+
+![estimador](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_estimador_del_total.png)
+
+El estimador del total se basa en el cálculo del promedio dentro de cada conglomerado y hacer la expansión a su respectivo tamaño al multiplicar por $M_i$, después se promedian estos totales para los $n$ conglomedrados en la muestra y se expande por el total de $N$ conglomedaros.
+
+Este estimador es un estimador insesgado.
+
+
+**Varianza del estimador del Total**
+
+La varianza del estimador del total puede descomponerse en 2 fuentes: la varianza entre conglomerados y la varianza dentro de conglomerados.
+
+![estimador](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_varianza_del_estimador_del_total.png)
+
+Notar que si $M_i = m_i$ estamos censando conglomerados y por tanto, por lo que la varianza se reduce a la contribución entre conglomerados. Por otro lado, si se toma muestra de todos los conglomerados ($N = n$) la varianza se deberá a la contribución dentro de conglomerados.
+
+
+Veamos las notas metodológicas del Censo 2010 y ENIGH para ver el diseño utilizado.
+
+[diseño muestral censo 2010](https://github.com/leonardomarintellez/muestreo_2021/blob/master/datos/censo_2010/dis_muestra_cpv2010.pdf)
+
+[diseño muestral enigh 2018](https://github.com/leonardomarintellez/muestreo_2021/blob/master/datos/enigh/dise%C3%B1o_muestral.pdf)
+
+
+### Encuestas complejas
+
+
+Se llama muestra o encuesta compleja cuando se tienen al menos 2 de las siguientes características
+
+* Estratos
+* Estimadores de razón
+* Varias etapas de muestreo
+
+
+### Deff 
+
+Un concepto interesante en el muestreo por conglomerados es el coeficiente de correlación interclase. 
+
+**pregunta.** ¿Cómo le explicarían un coeficiente de correlación a alguien que no tiene formación matemática?
+**Ejercicio**. Da un ejemplo de correlación y explica porque corelación no implica causalidad.
+
+El coeficiente de correlación interclase mide la relación lineal entre los valores de la variable de interés del mismo conglomerado.
+
+![estimador](/home/leonardo/Documentos/Acatlan/Repositorios/muestreo_2021/imágenes/cluster_correlacion_interclase.png)
+
+La varianzza del estimador del total se puede expresar alternativamente en términos de la varianza por muestreo aleatorio simple y el coeficiente de correlación. (**ejercicio** demostrar)
+
+-imagen-
+
+Notar que si $\rho = 0$ la varianza del total es igual a la varianza del muestreo aleatorio simple.
+
+**Deff**
+
+Utilizando la definición del efecto de diseño y la expresión anterior obtenemos
+
+$Deff = 1 + (\bar{m} - 1) \cdot \rho$
+
+De aquí se deduce que el Deff de muestreo por conglomerados suele ser mayor a 1. 
+
+
+En muestreo por conglomerado, incluso usando muestreo proporcional al tamaño, la precisión de las estimaciones es menor ¿por qué? Se toman individuos de una misma zona (colonia) en lugar de tomar individuos de todas las colonias.
+
+m es el número de individuos por conglomerado, asumiendo el mismo número de individuos en cada conglomerado, la fórmula anterior nos indica que aunque rho sea muy pequeña (0.01), con m igual a 100 se obtiene un deff de 2.
+
