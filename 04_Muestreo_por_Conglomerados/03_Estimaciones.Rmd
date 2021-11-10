@@ -1,0 +1,122 @@
+---
+title: "02 Estimaciones"
+author: "LMT"
+date: "noviembre de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+Usaremos datos ficticios (Tlaxcala) similares a los del Censo 2010. 
+
+
+**Descripción de los datos**
+
+Para el levantamiento de la muestra censal 2010 se diseñó un cuestionario ampliado, con el que fueron censadas alrededor de 2.9 millones de viviendas en el país, seleccionadas con criterios probabilísticos.
+
+Consta de 2 cuestionarios: básico y ampliado. 
+
+**Objetivos**. Por medio de la muestra censal se estiman tasas, promedios y proporciones.
+
+**Diseño**. El diseño de la muestra censal 2010 es estratificado por conglomerados y se realizó en una sola etapa de selección, es decir, se seleccionan áreas geográficas completas, ya sean manzanas o localidades. Dentro de estas áreas se aplica el cuestionario ampliado a todas las viviendas particulares habitadas
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+library(stringr)
+
+library(haven)
+```
+
+
+Leer datos de viviendas
+
+```{r}
+viviendas_29b <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_29_sas/viviendas_29b.sas7bdat", NULL)
+#glimpse(viviendas_29b)
+```
+
+Datos poblacionales
+
+```{r}
+viviendas_29b %>% summarise(num_municipios = n_distinct(MUN), num_agebs = n_distinct(AGEB), 
+                            num_viviendas = n_distinct(ID_VIV))
+```
+
+
+
+---
+
+Graficar las áreas geograficas de municipios y distritos electorales
+
+```{r}
+#Cargar librería para graficar mapas
+library(sf)
+```
+
+
+```{r}
+# Leer el dataframe de shapes de municipios
+shapes_municipios <- st_read("~/Documentos/Acatlan/datos/shapes/marco_geoestadistico_2010/municipios/Municipios_2010_5.shp")
+```
+
+
+
+
+Los shapefiles de los distritos electorales pueden descargarse del siguiente enlace [Cartografía IFE](http://cartografia.ife.org.mx/sige7/?distritacion=local)
+
+
+```{r}
+# Leer el dataframe que contiene los poligonos de los distritos electorales de Tlaxcala
+shapes_distritos_tlaxcala <- st_read("~/Documentos/Acatlan/datos/shapes/cartografia_ife/29/DISTRITO_LOCAL.shp")
+```
+
+
+```{r}
+shapes_municipios_tlaxcala <- shapes_municipios %>% filter(CVE_ENT == '29')
+```
+
+```{r}
+ggplot(shapes_municipios_tlaxcala) + 
+  geom_sf()
+```
+
+
+
+```{r}
+ggplot(shapes_distritos_tlaxcala) +
+  geom_sf()
+```
+
+## Estimación de Totales. 
+
+Estimar el Total de Personas utilizando los datos de Viviendas. La
+
+Tomar muestras en 2 etapas para distintos número de conglomerados. Cada muestra hacerla de tamaño 50,000
+
+Para cada muestra, calcular la varianza del estimador. Reportar el valor de cada componente de la varianza (varianza entre clusters y varianza dentro de los clusters).
+
+---
+
+## Estimación de Promedios
+
+Leer los datos de Personas. Hacer estimaciones para la edad promedio.
+
+```{r}
+personas_29b <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_29_sas/personas_29b.sas7bdat", NULL)
+glimpse(personas_29b)
+```
+
+
