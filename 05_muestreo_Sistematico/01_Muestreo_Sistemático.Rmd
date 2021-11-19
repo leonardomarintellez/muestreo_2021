@@ -1,0 +1,277 @@
+---
+title: "01_Muestreo_Sistematico"
+author: "LMT"
+date: "noviembre de 2021"
+output: html_document
+---
+
+
+## Muestreo Sistemático
+
+`(No es una muestra probabilística)`
+
+Recordar que la ventaja principal de una muestra probabilística es  que nos permite usar teoría estadística para hacer inferencia sobre la población y con ello se tiene la capacidad de producir medidas de error y precisión.
+
+Consiste en elegir una muestra en la cual solamente el primer elemento se toma al azar y el resto se selecciona sistemáticamente.
+
+
+Pude ser combinado con otros procedimientos de muestreo, y puede ser utilizado en la practica por su relativa facilidad de administración en el trabajo de campo. 
+
+Pasos para elegir una muestra sistemática:
+
+1. definir la longitud del intervalo de muestreo
+
+$q = \frac{N}{n}$
+
+Si N no es divisible por n, se toma $q$ como el entero inmediato anterior y habrá muestras que sean de tamaño n y otras de tamaño n+1.
+
+2. Seleccionar $q_0$ que sea un número entero aleatorio entre 1 y $q$.
+
+3. Seleccionar los siguientes elementos para que compongan la muestra
+
+$\{q, q_0 + q, q_0 + 2q, q_0 + 3q, \dots , q_0 + (n-1)q \}$
+
+
+**ejemplo**
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+library(stringr)
+```
+
+
+```{r}
+suppressMessages(precios <- read_csv("/home/leonardo/Documentos/Acatlan/datos/HousePrices/HousePrices.csv") %>% select(Id,SalePrice))
+glimpse(precios)
+```
+
+
+Definimos N y n
+```{r}
+N <- dim(precios)[1]
+n <- 100
+```
+
+definimos el intervalo
+```{r}
+q <- floor(N/n)
+q
+```
+
+
+definimos $q_0$. Recordar que si $u$ ~ $unif(0,1)$ entonces $(b-a) \cdot u + a$ ~ $unif(a,b)$
+```{r}
+set.seed(12345)
+u <- runif(1)
+q0 <- round((q-0)*u + 0)
+q0
+```
+
+La muestra está compuesta por los elementos:
+
+primero obtenemos el corte de los intervalos
+```{r}
+vector_multiplos_q <- q*0:(n-1)
+length(vector_multiplos_q)
+
+vector_multiplos_q
+```
+
+
+obtenemos el índice de los elementos
+```{r}
+indice_elementos <- round(q0 + vector_multiplos_q)
+indice_elementos
+```
+
+
+```{r}
+muestra_sistematica <- precios %>% 
+                        slice(indice_elementos)
+
+glimpse(muestra_sistematica)
+```
+
+
+**pregunta**. En muestreo sistemático, ¿cuántas muestras puede haber?. Las posibles muestras son $q$ (`r q`)
+
+**pregunta**. En muestreo aleatorio simple, ¿cuántas muestras puede haber?. Las posibles muestras son combinaciones de 100 en 1,460.
+
+
+
+---
+
+Para fines de estimación, se tiene que la probabilidad de seleccionar en la muestra cualquier elemento es $\frac{n}{N}$
+
+```{r}
+muestra_sistematica %>% summarise(precio_promedio = mean(SalePrice)/1000)
+```
+
+```{r}
+precios %>% summarise(precio_promedio = mean(SalePrice)/1000)
+```
+
+
+
+```{r}
+choose(1460,100)
+```
+
+Se puede ver al muestreo sistemático como un caso particular del muestreo por conglomerados en 1 etapa, no obstante no es posible utilizar el estimador de la varianza. en términos de muestreo por conglomerados, tendríamos n = 1 y mi = Mi
+
+En el caso de que ordenemos de manera aleatoria los elementos de la población, equivaldría a muestreo aleatorio simple.
+
+---
+
+### Orden de los elementos de la población respecto a la variable de interés
+
+1. Los elementos de la población aparecen en orden aleatorio.
+
+En este caso, es altamente problable que el muestreo sistemático produzca una muestra que se comporte como una muestra aleatoria.
+
+
+```{r}
+ggplot(data = precios) + 
+  geom_point(mapping = aes(x = Id, y = SalePrice))
+```
+
+
+---
+2. Los elementos de la población aparecen en orden creciente o decreciente.
+
+En este caso es más probable que el muestreo sistemático sea más preciso que el muestreo aleatorio. Esto se debe a que la muestra queda más dispersa en la población. Intuitivamente, en este caso el muestreo sistematico cunrira elementos en todos los rangos de la población. 
+
+
+```{r}
+precios_ordenados <- precios %>% 
+                    arrange(SalePrice) %>% 
+                    mutate(id_ordenada = row_number())
+
+head(precios_ordenados)
+```
+
+
+```{r}
+ggplot(data = precios_ordenados) + 
+  geom_point(mapping = aes(x = id_ordenada, y = SalePrice))
+```
+
+
+---
+3. Los elementos aparecen en un orden periódico.
+
+En este caso el muestreo sistématico será menos preciso que muestreo aleatorio ya que podría pasar que la muestra sistemática contenga elementos cuyos valores sean muy similares.
+
+
+
+```{r}
+precios_periodicos <- precios_ordenados %>% 
+                      mutate(periodo = id_ordenada %% q,
+                             periodo = ifelse(periodo == 0, q, periodo)) %>% 
+                      arrange(periodo) %>% 
+                      mutate(id_periodico = row_number())
+
+
+head(precios_periodicos, n = 25)
+```
+
+
+```{r}
+ggplot(data = precios_periodicos) + 
+  geom_point(mapping = aes(x = id_periodico, y = SalePrice))
+```
+
+
+
+```{r}
+precios_periodicos %>%  filter(SalePrice > 400000)
+```
+
+
+---
+
+**Muestras**
+
+1. Elemento ordenados al azar
+```{r}
+indice_elementos1 <- indice_elementos 
+muestra_sistematica1 <- precios %>% 
+                        slice(indice_elementos1)
+
+glimpse(muestra_sistematica1)
+```
+
+```{r}
+muestra_sistematica1 %>% summarise(precio_promedio = mean(SalePrice)/1000)
+```
+
+
+---
+
+2.  Elemento ordenados de forma ascendente
+```{r}
+indice_elementos2 <- indice_elementos + 50
+muestra_sistematica2 <- precios_ordenados %>% 
+                        slice(indice_elementos2)
+
+glimpse(muestra_sistematica2)
+```
+
+```{r}
+muestra_sistematica2 %>% summarise(precio_promedio = mean(SalePrice)/1000)
+```
+
+
+---
+
+3.  Elemento que muestran una periodicidad
+```{r}
+indice_elementos3 <- indice_elementos  + 98
+muestra_sistematica3 <- precios_periodicos %>% 
+                        slice(indice_elementos3)
+
+glimpse(muestra_sistematica3)
+```
+
+```{r}
+muestra_sistematica3 %>% summarise(precio_promedio = mean(SalePrice)/1000)
+```
+
+
+---
+
+**ventajas**
+
+- Es más fácil seleccionar una muestra que en muestreo aleatorio.
+
+- Es factible producir una muestra representativa 
+
+
+**desventajas**
+
+- Un mal arreglo en el marco puede producir muestras ineficientes.
+
+- No se pueden calcular estimadores de varianza con 1 sola muestra sistemática.
+
+
+---
+
+El muestreo sistemático puede llegar a ser utilizado para seleccionar unidades secundarias (USM).
+
+
+Nota. En el pasado no se tenía la facilidad computacional que se tiene ahora y se llegaba a trabajar tanto con tablas de probabilidad como con tablas de números aleatorios. Es por ello que el uso de muestreo sistemático podía ser una de las razones por las cuales era sencillo seleccionar una muestra de esa manera.
+
+
+Nota. No hay expresiones válidas para estimadores de varianza cuando se usa muestreo sistemático, pero si los elementos están ordenados, se pueden utilizar expresiones de muestreo aleatorio como una aproximación y resulta un método conservador ya que las varianzas suelen ser menores.
+
+
+
