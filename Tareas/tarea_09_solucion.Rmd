@@ -1,0 +1,282 @@
+---
+title: "Tarea_09_solución"
+author: "LMT"
+date: "noviembre de 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+El objetivo de la tarea es que resulevan ejemplos prácticos de manipulación de datos dado que es muy común que al trabajr con datos una parte importante del tiempo se lo lleva el preprocesamiento de los mismos.
+
+
+
+```{r}
+# Limpiar área de trabajo
+rm(list = ls())
+```
+
+
+```{r}
+# Cargar librerías
+suppressMessages(library(tidyverse))
+library(ggplot2)
+library(readr)
+library(stringr)
+
+library(readxl)
+library(haven)
+```
+
+
+**Ejercicio 1**
+
+Utilizar los datos de [sucursales](https://github.com/leonardomarintellez/muestreo_2021/tree/master/datos/sucursales)  para identificar los bancos que tienen presencia en municipios donde ningun otro banco tiene una sucursal, es decir, para cada banco identificar el número de municipios donde son los unicos que tienen alguna sucursal. Notar que habrá bancos que no cumplan con este criterio. Proporcionar una tabla con el nombre del banco y el número de municipios donde sólo ellos tienen sucursales.
+
+
+```{r}
+sucursales <- read_excel("~/Documentos/Acatlan/datos/sucursales/sucursales_por_municipio_202004.xlsx")
+glimpse(sucursales)
+```
+
+Identificar que municipios tienen un único banco (pueden tener más de 1 sucursal)
+
+```{r}
+municipios_1_solo_banco <- sucursales %>% 
+                            group_by(LLAVE) %>% 
+                            summarise(num_bancos = n_distinct(CVE_INSTITUCION)) %>% 
+                            filter(num_bancos == 1) %>% 
+                            select(LLAVE) %>% 
+                            pull()
+
+length(municipios_1_solo_banco)
+```
+
+Utilizar los municipios obtenidos en el paso previo para conocer para cada banco el número de municipios donde tienen presesncia unica.
+
+```{r}
+tabla <- sucursales %>% 
+          filter(LLAVE %in% municipios_1_solo_banco) %>% 
+          group_by(CVE_INSTITUCION,DESC_INSTITUCION) %>%
+          summarise(num_municipios = n_distinct(LLAVE)) %>% 
+          arrange(desc(num_municipios))
+
+tabla          
+```
+
+
+
+**Ejercicio 2**
+
+Utilizar los datos de [ratings de películas](https://github.com/leonardomarintellez/muestreo_2021/tree/master/datos/MovieLens) para calcular lo siguiente:
+
+
+- Número de usuarios y número de películas
+- Las 3 películas con mejor promedio y las 3 películas con peor promedio
+- La película con el mayor número de calificaciones y cuantás son.
+- El usuario que ha calificado un mayor número de películas y cuántas ha calificado.
+- El número promedio de evaluaciones por película.
+
+Para el siguiente punto intenten resolver la parte de identificar el año usando expresiones regulares (regular expressions).
+
+- Calcular el número de películas por año
+
+Noten que para resolver un par de puntos deben unir la información de las tablas _data_ e _item_
+
+
+```{r}
+columnas_datos <- c('user_id','item_id','rating','timestamp')
+datos <- read_delim("~/Documentos/Acatlan/datos/MOVIELENS/ml-100k/u.data", delim = "\t", col_names = columnas_datos)
+glimpse(datos)
+```
+
+
+```{r}
+columnas_movies <- c('item_id', 'title', 'release_date', 'video_release_date', 'imdb_url','unknown', 'Action', 'Adventure','Animation', 'Children\'s', 'Comedy', 'Crime', 'Documentary', 'Drama', 'Fantasy','Film-Noir', 'Horror', 'Musical', 'Mystery', 'Romance', 'Sci-Fi', 'Thriller', 'War', 'Western')
+
+movies <- read_delim("~/Documentos/Acatlan/datos/MOVIELENS/ml-100k/u.item", delim = "|", col_names = columnas_movies)
+glimpse(movies)
+```
+
+
+```{r}
+ctmovies <- movies %>% select('item_id','title')
+head(ctmovies)
+```
+
+Unir las tablas
+
+```{r}
+movie_ratings <- left_join(datos,ctmovies, by = c("item_id"))
+```
+
+Top películas con mejor calificación
+```{r}
+movie_ratings %>% group_by(item_id, title) %>% 
+                  summarise(numero_calificaciones = n(), calificacion_promedio = mean(rating)) %>% 
+                  arrange(desc(calificacion_promedio)) %>% 
+                  head(20)
+```
+
+
+
+Películas con peor calificación
+```{r}
+movie_ratings %>% group_by(item_id, title) %>% 
+                  summarise(numero_calificaciones = n(), calificacion_promedio = mean(rating)) %>% 
+                  arrange((calificacion_promedio)) %>% 
+                  head(20)
+```
+
+
+Película con el mayor número de calificaciones
+
+```{r}
+movie_ratings %>% group_by(item_id, title) %>% 
+                  summarise(numero_calificaciones = n(), calificacion_promedio = mean(rating)) %>% 
+                  arrange(desc(numero_calificaciones)) %>% 
+                  head(20)
+```
+
+
+
+usuario que ha calificado mayor número de películas
+
+```{r}
+movie_ratings %>% group_by(user_id) %>% 
+                  summarise(numero_calificaciones = n(), calificacion_promedio = mean(rating)) %>% 
+                  arrange(desc(numero_calificaciones)) %>% 
+                  head(20)
+```
+
+
+
+Número promedio de evaluaciones por película
+
+```{r}
+movie_ratings %>% group_by(item_id, title) %>% 
+                  summarise(numero_calificaciones = n()) %>% 
+                  ungroup() %>% 
+                  summarise(promedio = mean(numero_calificaciones))
+```
+
+
+
+```{r}
+movie_ratings %>% mutate(anio = str_extract(title, "\\d{4}")) %>% 
+head()                         
+                         
+```
+
+```{r}
+movie_ratings %>% mutate(anio = str_extract(title, "\\d+")) %>% 
+head()  
+```
+
+
+**Puntos a discutir**. Las encuestas voluntarias pueden incluir sesgos como son preferencias de unicamente los individuos.
+
+**Ejercicio 3**
+
+Utilizar los datos del [censo 2010](https://github.com/leonardomarintellez/muestreo_2021/tree/master/datos/censo_2010) de la tabla de personas del Estado de México para crear una grafica de dispersión de la edad de la persona vs la edad de su madre. Para identificar las variables que les ayudarán para este ejercicio consulten el diccionario del cuestionario ubicado en el mismo vínculo que los datos. No a todas las personass podrán asignarles la edad de su madre, sólo conserven los registros donde tengan dato tanto de la persona como de su madre.
+
+```{r}
+#personas <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_01_sas/personas_01.sas7bdat", NULL) %>% 
+#                select(ID_VIV,NUMPER,EDAD,IDMADRE)
+
+personas <- read_sas("~/Documentos/Acatlan/datos/Censo_2010/MC2010_15_sas/personas_15a.sas7bdat", NULL) %>% 
+                select(ID_VIV,NUMPER,EDAD,IDMADRE)
+
+
+glimpse(personas)
+```
+
+```{r}
+
+tabla_edad_persona <- personas %>% 
+                      mutate(LLAVE =paste(ID_VIV,IDMADRE,sep = "_")) %>%  # La llave auxiluar es usar el id de la madre
+                      rename(EDAD_PERSONA = EDAD) %>% 
+                      select(LLAVE, ID_VIV, NUMPER, EDAD_PERSONA)
+
+head(tabla_edad_persona)
+```
+
+```{r}
+tabla_edad_madre <- personas %>% 
+                      mutate(LLAVE =paste(ID_VIV,substr(NUMPER,4,5),sep = "_")) %>% 
+                      rename(EDAD_MADRE = EDAD) %>% 
+                      select(LLAVE,ID_VIV, NUMPER, EDAD_MADRE)
+
+head(tabla_edad_madre)
+```
+
+
+```{r}
+tabla_union_info <- inner_join(tabla_edad_persona,tabla_edad_madre %>% select(-ID_VIV,-NUMPER), by =c("LLAVE"))
+head(tabla_union_info)
+```
+
+Número de registros que hicieron match
+```{r}
+glimpse(tabla_union_info)
+```
+
+```{r}
+tabla_union_info %>% filter(ID_VIV == "00133080")
+```
+
+
+
+```{r}
+ggplot(tabla_union_info) +
+  geom_jitter(mapping = aes(x = EDAD_PERSONA, y = EDAD_MADRE, alpha = 0.6)) +
+  geom_abline(intercept=0, slope=1, colour = "red", alpha = 0.6) +
+  geom_abline(intercept = 60, slope = 1, colour = "grey", alpha = 0.6)
+```
+
+
+**Puntos a discutir**. Piede haber mala calidad en la información de las encuentas, tanto por el levantamiento como por la persona que responde
+
+
+**Ejercicio 4**
+
+Utilizar los datos que hemos visto en clase de [House Prices](https://github.com/leonardomarintellez/muestreo_2021/tree/master/datos/HousePrices). A esa tabla de datos deben crearle una variable adicional que tenga 2 categorías 'train' y 'test'. El 70% de los registros deben estar arcados con la categoría 'train' y el restante 30% con la categoría 'test'. Es decir, creen una muestra aleatoria de aproximadamente el 70% de los datos y a los ids que correspondan a los ids de la muestra asignenles la categoría 'train' y a los ids restantes asignenles la categoría 'test'. En su mail de entrega de tarea adjuntar una tabla con 2 variables, el id de la casa y la categoría. 
+
+```{r}
+precios <- read_csv("/home/leonardo/Documentos/Acatlan/datos/HousePrices/HousePrices.csv") %>% select(Id,SalePrice)
+glimpse(precios)
+```
+
+
+Tomar una muestra del 70% y asignarle la categoría train y al restante 30%
+
+
+```{r}
+n <- round(dim(precios)[1] * 0.70)
+set.seed(1234)
+ids_train <- precios %>% select(Id) %>% pull() %>% sample(n)
+
+muestra_precios <- precios %>% 
+                  mutate(tipo = ifelse(Id %in% ids_train,"train","test"))
+
+```
+
+
+```{r}
+head(muestra_precios)
+```
+
+Comprobar la proporción
+
+```{r}
+muestra_precios %>% 
+  group_by(tipo) %>% 
+  summarise(n = n()) %>% 
+  mutate(prop = n / sum(n))
+```
+
+
+
