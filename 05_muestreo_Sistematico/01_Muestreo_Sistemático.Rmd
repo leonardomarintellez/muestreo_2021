@@ -55,6 +55,12 @@ glimpse(precios)
 ```
 
 
+```{r}
+head(precios, n = 20)
+```
+
+
+
 Definimos N y n
 ```{r}
 N <- dim(precios)[1]
@@ -121,11 +127,6 @@ precios %>% summarise(precio_promedio = mean(SalePrice)/1000)
 ```
 
 
-
-```{r}
-choose(1460,100)
-```
-
 Se puede ver al muestreo sistemático como un caso particular del muestreo por conglomerados en 1 etapa, no obstante no es posible utilizar el estimador de la varianza. en términos de muestreo por conglomerados, tendríamos n = 1 y mi = Mi
 
 En el caso de que ordenemos de manera aleatoria los elementos de la población, equivaldría a muestreo aleatorio simple.
@@ -146,9 +147,11 @@ ggplot(data = precios) +
 
 
 ---
+
+
 2. Los elementos de la población aparecen en orden creciente o decreciente.
 
-En este caso es más probable que el muestreo sistemático sea más preciso que el muestreo aleatorio. Esto se debe a que la muestra queda más dispersa en la población. Intuitivamente, en este caso el muestreo sistematico cunrira elementos en todos los rangos de la población. 
+En este caso es más probable que el muestreo sistemático sea más preciso que el muestreo aleatorio. Esto se debe a que la muestra queda más dispersa en la población. Intuitivamente, en este caso el muestreo sistemático contendrá elementos en todos los rangos de la población. 
 
 
 ```{r}
@@ -167,6 +170,8 @@ ggplot(data = precios_ordenados) +
 
 
 ---
+
+
 3. Los elementos aparecen en un orden periódico.
 
 En este caso el muestreo sistématico será menos preciso que muestreo aleatorio ya que podría pasar que la muestra sistemática contenga elementos cuyos valores sean muy similares.
@@ -253,7 +258,7 @@ muestra_sistematica3 %>% summarise(precio_promedio = mean(SalePrice)/1000)
 
 - Es más fácil seleccionar una muestra que en muestreo aleatorio.
 
-- Es factible producir una muestra representativa 
+- Es factible producir una muestra representativa. 
 
 
 **desventajas**
