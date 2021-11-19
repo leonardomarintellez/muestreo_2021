@@ -7,6 +7,13 @@
 ### Anuncios
 
 * Primer examen: jueves 14 de octubre de 2021, 20:00 hrs
+* Segundo examen: jueves 25 de noviembre de 2021, 20:00 hrs
+
+**Fechas de examenés ordinarios**
+
+* Primera vuelta: martes 30 de noviembre de 2021, 20:00 hrs
+* Segunda vuelta: martes 7 de diciembre de 2021, 20:00 hrs
+
 
 **Sesiones prácticas de R para resolver dudas**
 
@@ -47,10 +54,16 @@ El curso cubrirá los elementos teóricos y prácticos de las diversas técnicas
 	* Post-Estratificación
 
 4. Muestreo aleatorio por conglomerados
+	* Introducción
+	* Notación
+	* Estimaciones
 
 5. Muestreo Sistemático
+	* Introducción
+	* Ejemplos
 
 6. Bootstrap
+	* Ejemplos prácticos
 
 **Evaluación**
 
